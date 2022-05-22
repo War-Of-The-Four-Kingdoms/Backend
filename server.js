@@ -13,8 +13,9 @@ let users = [];
 let rooms = [];
 io.on('connection', (socket) => {
 
-    socket.on('scts',(message,code) => {
-        socket.to(code).emit('sctc',{username: users.find(u => u.id === socket.id).username, message: message});
+    socket.on('scts',(data) => {
+        console.log(data);
+        socket.to(data.code).emit('sctc',{username: users.find(u => u.id === socket.id).username, message: data.message});
     });
 
     socket.on('disconnect', (socket) => {
@@ -23,33 +24,36 @@ io.on('connection', (socket) => {
 
     socket.on('start', (username) => {
         const user = {
-            username,
+            username: username,
             id: socket.id
         };
         users.push(user);
     });
 
-    socket.on('create lobby', (code,max_player) => {
-        socket.join(code);
+    socket.on('create lobby', (data) => {
+        socket.join(data.code);
+        console.log(socket.id);
         const room = {
-            code: code,
+            code: data.code,
             host: socket.id,
-            max: max_player,
+            max: data.max_player,
             players: []
         };
         room.players.push(users.find(u => u.id === socket.id));
         rooms.push(room);
-        socket.emit('redirect', '/lobby');
     });
 
-    socket.on('join lobby', (code) => {
-        socket.join(code);
-        rooms[code].players.push(users.find(u => u.id === socket.id));
+    socket.on('join lobby', (data) => {
+        socket.join(data.code);
+        console.log(data.code);
+        console.log(rooms);
+        console.log(rooms.find(r => r.code == data.code));
+        rooms.find(r => r.code === data.code).players.push(users.find(u => u.id === socket.id));
     });
 
     socket.on('leave lobby', (code) => {
         socket.leave(code);
-        rooms[code].players.pop(users.find(u => u.id === socket.id));
+        rooms.find(r => r.code === code).players.pop(users.find(u => u.id === socket.id));
     });
 
     socket.on('get room info', () => {
