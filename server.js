@@ -12,7 +12,6 @@ const io = require('socket.io')(server, {
 let users = [];
 let rooms = [];
 io.on('connection', (socket) => {
-    socket.leave(socket.id);
     socket.on('scts',(data) => {
         console.log(data);
         socket.to(data.code).emit('sctc',{username: users.find(u => u.id === socket.id).username, message: data.message});
