@@ -36,6 +36,7 @@ io.on('connection', (socket) => {
             code: data.code,
             host: socket.id,
             max: data.max_player,
+            private: data.private,
             players: []
         };
         room.players.push(users.find(u => u.id === socket.id));
@@ -53,7 +54,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('list room', () => {
-        socket.emit('set room list', io.sockets.adapter.rooms);
+        socket.emit('set room list', rooms.filter(r => r.private === false));
     });
 
     socket.on('get room info', () => {
