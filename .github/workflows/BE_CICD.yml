@@ -1,0 +1,95 @@
+name: PHP Socket.js CICD
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ docker ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout the code 
+        uses: actions/checkout@v3
+      
+      - name: Docker login 
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo "----- DOCKER LOGIN -----"
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+        
+      - name: Docker Building
+        run: |
+          echo "----- DOCKER BUILD -----"
+          docker build -t cicd/backend:latest .
+    
+      - name: Docker tagging
+        run: |
+          echo "----- DOCKER TAG -----"
+          docker tag cicd/backend:latest sharkthovenzart/seniorproject:backend
+        
+      - name: Docker push
+        run: |
+          echo "----- DOCKER PUSH -----"
+          docker push sharkthovenzart/seniorproject:backend
+        
+      - name: Docker logout
+        run: |
+          echo "----- DOCKER LOGOUT -----"
+          docker logout
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: SSH into Azure Virtual machine using SSH key
+        uses: appleboy/ssh-action@master
+        env: 
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        with:
+          host: ${{ secrets.VM_IP }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VM_PORT }}
+          envs: DOCKER_USER, DOCKER_PASSWORD
+          script: |
+            echo "Im in AZURE VM"
+            echo "----- DOCKER LOGIN -----"
+            docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+            echo ""
+            echo "----- DOCKER PULL -----"
+            docker image prune -f
+            docker pull docker.io/sharkthovenzart/seniorproject:backend
+            echo ""
+            echo "----- DOCKER RUN -----"
+            docker rm backend --force
+            docker run --name backend -p 8000:8000 -p 3000:3000 -p 3030:3030 -d sharkthovenzart/seniorproject:backend
+            echo ""
+            echo "----- DOCKER RUN -----"
+            docker exec -i backend pm2 start server.js
+            docker exec -i backend pm2 start "php artisan serve --host=0.0.0.0"
+            docker exec -i backend pm2 ls
+            exit
+            echo ""
+            echo "----- DOCKER LOGOUT -----"
+            docker logout
+            echo ""
+      - name: Checking contaniner and status
+        env:
+          VM_IP: ${{ secrets.VM_IP }}
+        run: |
+          echo "----- DOCKER LIST CONTAINER -----"
+          docker ps -a
+          echo ""      
