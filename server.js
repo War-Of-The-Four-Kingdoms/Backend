@@ -43,6 +43,15 @@ io.on('connection', (socket) => {
         rooms.find(r => r.code === data.code).players.pop(users.find(u => u.id === socket.id));
     });
 
+    socket.on('check room exists', (code,callback) => {
+        if(rooms.includes(rooms.find(r => r.code === code))){
+            callback(true);
+        }
+        else{
+            callback(false);
+        }
+    });
+
     socket.on('list room', () => {
         socket.emit('set room list', rooms.filter(r => r.private === false));
     });
