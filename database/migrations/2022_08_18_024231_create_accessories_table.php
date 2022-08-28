@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateItemCardsTable extends Migration
+class CreateAccessoriesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,10 +13,10 @@ class CreateItemCardsTable extends Migration
      */
     public function up()
     {
-        Schema::create('item_cards', function (Blueprint $table) {
+        Schema::create('accessories', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->boolean('immediately');
+            $table->string('image');
             $table->timestamps();
         });
     }
@@ -28,6 +28,6 @@ class CreateItemCardsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('item_cards');
+        Schema::dropIfExists('accessories');
     }
 }
