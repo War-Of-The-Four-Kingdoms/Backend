@@ -135,6 +135,8 @@ io.on('connection', (socket) => {
         for(let pos of r.positions){
             pos.username = users.find(u => u.id == pos.uid).username;
         }
+        r.host == socket.id ? r.is_host = true : r.is_host = false;
+        r.uid = socket.id;
         socket.emit('set room', r);
     });
 });
