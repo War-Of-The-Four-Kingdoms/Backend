@@ -127,6 +127,7 @@ io.on('connection', (socket) => {
         // rooms.find(r => r.code == data.code).players.push(socket);
         rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0});
         users.find(u => u.id == socket.id ).room = data.code;
+        socket.emit('assign position',rooms.find(r => r.code == data.code).positions);
     });
     socket.on('leave lobby', (data) => {
         socket.leave(data.code);
