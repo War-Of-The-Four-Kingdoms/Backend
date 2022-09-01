@@ -28,12 +28,12 @@ const MAX_WAITING = 7000;
 // }
 function next_turn(socket,code){
     if(typeof pos[code] == 'undefined'){
-        pos[code] = 0;
+        pos[code] = 1;
     }
     if(typeof current_turn[code] == 'undefined'){
         current_turn[code] = 0;
     }
-   pos[code] = current_turn[code]++ % rooms.find(r => r.code == code).positions.length;
+   pos[code] = (current_turn[code]++ % rooms.find(r => r.code == code).positions.length) + 1;
    let sid = rooms.find(r => r.code == code).positions.find(p => p.position == pos[code]).uid;
 //    socket.to(code).emit('other turn',{username: users.find(u => u.room == code && u.position == pos[code]).username});
     if(socket.id == sid){
@@ -79,7 +79,7 @@ io.on('connection', (socket) => {
         });
         io.in(data.code).emit('assign roles',room_pos);
         current_turn[data.code] = room_pos.find(rp => rp.role == 'king').position;
-        pos[data.code] = 0;
+        pos[data.code] = 1;
         console.log(room_pos);
         setTimeout(()=>{next_turn(socket,data.code);},5000);
         // let sid = next_turn(socket,data.code);
@@ -102,7 +102,7 @@ io.on('connection', (socket) => {
         const user = {
             username: username,
             id: socket.id,
-            position: null,
+            position: 0,
             room: ''
         };
         users.push(user);
@@ -118,7 +118,7 @@ io.on('connection', (socket) => {
             positions: []
         };
         // room.players.push(socket);
-        room.positions.push({uid: socket.id, position: null});
+        room.positions.push({uid: socket.id, position: 0});
         rooms.push(room);
         users.find(u => u.id == socket.id ).room = data.code;
     });
