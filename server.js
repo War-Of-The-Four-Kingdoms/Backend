@@ -70,14 +70,17 @@ io.on('connection', (socket) => {
     socket.on('start game', (data) => {
         // let roles = $.get('getRoles');
         let roles = ['king','knight','noble','villager','villager','villager'];
-        let shufflerole = roles.sort((a, b) => 0.5 - Math.random());
         let room_pos = rooms.find(r => r.code == data.code).positions;
+        let new_r = roles.slice(0,room_pos.length)
+        let shufflerole = new_r.sort((a, b) => 0.5 - Math.random());
+        console.log(shufflerole);
         room_pos.forEach((value, i) => {
             value.role = shufflerole[i];
         });
         io.in(data.code).emit('assign roles',room_pos);
-        current_turn[data.code] = room_pos.find(rp = rp.role == 'king').position;
+        current_turn[data.code] = room_pos.find(rp => rp.role == 'king').position;
         pos[data.code] = 0;
+        console.log(room_pos);
         setTimeout(()=>{next_turn(socket,data.code);},5000);
         // let sid = next_turn(socket,data.code);
         // console.log(sid);
@@ -89,7 +92,7 @@ io.on('connection', (socket) => {
         socket.to(data.code).emit('sctc',{username: users.find(u => u.id == socket.id).username, message: data.message});
     });
     socket.on('disconnect', () => {
-        // users = users.filter(u => u.id != socket.id );
+        users = users.filter(u => u.id != socket.id );
     //     console.log('A player disconnected');
     //    users.splice(users.indexOf(socket),1);
     //    pos>0?pos--:pos=0;
