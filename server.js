@@ -102,7 +102,7 @@ io.on('connection', (socket) => {
         const user = {
             username: username,
             id: socket.id,
-            position: 0,
+            position: null,
             room: ''
         };
         users.push(user);
@@ -118,7 +118,7 @@ io.on('connection', (socket) => {
             positions: []
         };
         // room.players.push(socket);
-        room.positions.push({uid: socket.id, position: 0});
+        room.positions.push({uid: socket.id, position: null});
         rooms.push(room);
         users.find(u => u.id == socket.id ).room = data.code;
     });
