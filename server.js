@@ -1,5 +1,8 @@
 const express = require('express');
 const { message } = require('laravel-mix/src/Log');
+const jsdom = require('jsdom');
+const dom = new jsdom.JSDOM("");
+const $ = require('jquery')(dom.window)
 const app = express();
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
@@ -8,11 +11,22 @@ const io = require('socket.io')(server, {
 var users = [];
 var rooms = [];
 var current_turn = [];
-// var timeout = [];
+var timeout = [];
 var pos = [];
-const MAX_WAITING = 5000;
+const MAX_WAITING = 7000;
 
-function next_turn(code){
+// function next_turn(code){
+//     if(typeof pos[code] == 'undefined'){
+//         pos[code] = 0;
+//     }
+//     if(typeof current_turn[code] == 'undefined'){
+//         current_turn[code] = 0;
+//     }
+//    pos[code] = current_turn[code]++ % rooms.find(r => r.code == code).positions.length;
+//    return rooms.find(r => r.code == code).positions.find(p => p.position == pos[code]).uid;
+
+// }
+function next_turn(socket,code){
     if(typeof pos[code] == 'undefined'){
         pos[code] = 0;
     }
@@ -20,43 +34,54 @@ function next_turn(code){
         current_turn[code] = 0;
     }
    pos[code] = current_turn[code]++ % rooms.find(r => r.code == code).positions.length;
-   return rooms.find(r => r.code == code).positions.find(p => p.position == pos[code]).uid;
-
-//    let uid = users.find(u => u.room == code && u.position == pos[code]).id;
-//    let sk = rooms.find(r => r.code == code).players.find(p => p.id == uid);
-//    sk.to(code).emit('otherpos',{username: users.find(u => u.room == code && u.position == pos[code]).username});
-//    sk.emit('yourpos');
-//    console.log("next turn triggered " , pos[code]);
-//    triggerTimeout(code);
+   let sid = rooms.find(r => r.code == code).positions.find(p => p.position == pos[code]).uid;
+//    socket.to(code).emit('other turn',{username: users.find(u => u.room == code && u.position == pos[code]).username});
+    if(socket.id == sid){
+        socket.emit('your turn');
+    }else{
+        socket.to(sid).emit('your turn');
+    }
+   console.log(code , " next turn triggered " , pos[code]);
+   triggerTimeout(socket,code);
 }
 
-// function triggerTimeout(code){
-//     timeout[code] = setTimeout(()=>{nextpos(code);},MAX_WAITING);
-// }
+function triggerTimeout(socket,code){
+    timeout[code] = setTimeout(()=>{next_turn(socket,code);},MAX_WAITING);
+}
 
-// function resetTimeout(code){
-//    if(typeof timeout[code] == 'object'){
-//      console.log("timeout reset");
-//      clearTimeout(timeout[code]);
-//    }
-// }
+function resetTimeout(code){
+   if(typeof timeout[code] == 'object'){
+     console.log("timeout reset");
+     clearTimeout(timeout[code]);
+   }
+}
 
 io.on('connection', (socket) => {
     // users.push(socket);
     socket.on('pass turn',(data) => {
         if(typeof pos[data.code] != 'undefined'){
             if(users.find(u => u.room == data.code && u.position == pos[data.code]).id == socket.id){
-                // resetTimeout(data.code);
-                socket.to(next_turn(data.code)).emit('your turn');
+                resetTimeout(data.code);
+                next_turn(socket,data.code);
+                // socket.to(next_turn(data.code)).emit('your turn');
                 }
         }
     })
     socket.on('start game', (data) => {
-        current_turn[data.code] = data.pm_pos;
+        // let roles = $.get('getRoles');
+        let roles = ['king','knight','noble','villager','villager','villager'];
+        let shufflerole = roles.sort((a, b) => 0.5 - Math.random());
+        let room_pos = rooms.find(r => r.code == data.code).positions;
+        room_pos.forEach((value, i) => {
+            value.role = shufflerole[i];
+        });
+        io.in(data.code).emit('assign roles',room_pos);
+        current_turn[data.code] = room_pos.find(rp = rp.role == 'king').position;
         pos[data.code] = 0;
-        let sid = next_turn(data.code);
-        console.log(sid);
-        socket.to(sid).emit('your turn');
+        setTimeout(()=>{next_turn(socket,data.code);},5000);
+        // let sid = next_turn(socket,data.code);
+        // console.log(sid);
+        // socket.to(sid).emit('your turn');
     });
 
 
