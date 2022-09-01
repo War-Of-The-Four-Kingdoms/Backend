@@ -138,6 +138,7 @@ io.on('connection', (socket) => {
     socket.on('select position', (data) => {
         rooms.find(r => r.code == data.code).positions.find(p => p.uid == socket.id).position=data.position;
         users.find(u => u.id == socket.id ).position = data.position;
+        io.to(data.code).emit('assign position',rooms.find(r => r.code == data.code).positions);
     });
 
     socket.on('check room exists', (code,callback) => {

@@ -33,3 +33,4 @@ Route::group(['middleware' => 'auth:api'], function(){
         return response()->json('DONE');
     });
 });
+Route::get('getRole',)
