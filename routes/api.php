@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthenController;
+use App\Http\Controllers\UserAvatarController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,7 @@ Route::post('register', [AuthenController::class, 'register']);
 Route::group(['middleware' => 'auth:api'], function(){
     Route::post('details', [AuthenController::class, 'details']);
     Route::get('/token/revoke', function (Request $request) {
+        dd($request);
         DB::table('oauth_access_tokens')
             ->where('user_id', $request->user()->id)
             ->update([
@@ -33,4 +35,5 @@ Route::group(['middleware' => 'auth:api'], function(){
         return response()->json('DONE');
     });
 });
-Route::get('getRole',)
+Route::get('test', [UserAvatarController::class, 'getUserWithAvatar']);
+// Route::get('getRole',)
