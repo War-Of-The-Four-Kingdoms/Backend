@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
@@ -15,6 +16,61 @@ class AuthenController extends BaseController
      *
      * @return \Illuminate\Http\Response
      */
+    private $client;
+
+    /**
+     * DefaultController constructor.
+     */
+    public function __construct()
+    {
+        $this->client = DB::table('oauth_clients')->where('password_client', 1)->first();
+    }
+
+    /**
+     * @param Request $request
+     * @return mixed
+     */
+
+    public function login(Request $request)
+    {
+        $request->request->add([
+            'grant_type' => 'password',
+            'username' => $request->email,
+            'password' => $request->password,
+            'client_id' => $this->client->id,
+            'client_secret' => $this->client->secret,
+            'scope' => ''
+        ]);
+
+        $proxy = Request::create(
+            'api/oauth/token',
+            'POST'
+        );
+
+        return \Route::dispatch($proxy);
+    }
+
+    /**
+     * @param Request $request
+     * @return mixed
+     */
+    public function refreshToken(Request $request)
+    {
+        $request->request->add([
+            'grant_type' => 'refresh_token',
+            'refresh_token' => $request->refresh_token,
+            'client_id' => $this->client->id,
+            'client_secret' => $this->client->secret,
+            'scope' => ''
+        ]);
+
+        $proxy = Request::create(
+            'api/oauth/token',
+            'POST'
+        );
+
+        return \Route::dispatch($proxy);
+    }
 
     public $successStatus = 200;
 
@@ -26,55 +82,56 @@ class AuthenController extends BaseController
             'password' => 'required',
             'c_password' => 'required|same:password',
         ]);
-   
+
         if($validator->fails()){
-            return $this->sendError('Validation Error.', $validator->errors());       
+            return $this->sendError('Validation Error.', $validator->errors());
         }
-   
-        $input = $request->all();
-        $input['password'] = bcrypt($input['password']);
-        $user = User::create($input);
-        $success['token'] =  $user->createToken('W4K');
-        $success['name'] =  $user->name;
-   
-        return $this->sendResponse($success, 'User register successfully.');
-    }
-   
-    /**
-     * Login api
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function login(Request $request)
-    {
-        if(Auth::attempt(['email' => $request->email, 'password' => $request->password])){ 
-            $user = Auth::user(); 
-            $success['token'] =  $user->createToken('W4K'); 
-            $success['name'] =  $user->name;
-   
-            return $this->sendResponse($success, 'User login successfully.');
-        } 
-        else{ 
-            return $this->sendError('Unauthorised.', ['error'=>'Unauthorised']);
-        } 
-    }
 
-    public function details() 
-    { 
-        $user = Auth::user(); 
-        return response()->json(['success' => $user], $this->successStatus); 
-    } 
-
-    public function refresh(){
-        
-        $response = Http::asForm()->post('http://passport-app.test/oauth/token', [
-            'grant_type' => 'refresh_token',
-            'refresh_token' => 'the-refresh-token',
-            'client_id' => 'client-id',
-            'client_secret' => 'client-secret',
-            'scope' => '',
+        $data = $request->only('email','name','password','mobile');
+        $uuid = bin2hex(random_bytes(10));
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => bcrypt($data['password']),
+            'uuid' => $uuid
         ]);
-         
-        return $response->json();
+
+        $request->request->add([
+            'grant_type'    => 'password',
+            'client_id'     => $this->client->id,
+            'client_secret' => $this->client->secret,
+            'username'      => $data['email'],
+            'password'      => $data['password'],
+            'scope'         => null,
+        ]);
+
+        $token = Request::create(
+            'api/oauth/token',
+            'POST'
+        );
+        return \Route::dispatch($token);
+    }
+
+    // Personal Access Token
+
+    // public function login(Request $request)
+    // {
+    //     if(Auth::attempt(['email' => $request->email, 'password' => $request->password])){
+    //         $user = Auth::user();
+    //         $success['token'] =  $user->createToken('W4K');
+
+    //         $success['name'] =  $user->name;
+
+    //         return $this->sendResponse($success, 'User login successfully.');
+    //     }
+    //     else{
+    //         return $this->sendError('Unauthorised.', ['error'=>'Unauthorised']);
+    //     }
+    // }
+
+    public function details()
+    {
+        $user = Auth::user();
+        return response()->json(['success' => $user], $this->successStatus);
     }
 }

@@ -16,7 +16,7 @@ class CreateFacesTable extends Migration
         Schema::create('faces', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('image');
+            $table->string('image')->nullable();
             $table->timestamps();
         });
     }

@@ -14,7 +14,7 @@ class RoleSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('role')->insert([
+        DB::table('roles')->insert([
             ['name' => 'king', 'extra_hp' => true],
             ['name' => 'knight', 'extra_hp' => false],
             ['name' => 'noble', 'extra_hp' => false],

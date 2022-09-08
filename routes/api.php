@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthenController;
 use App\Http\Controllers\UserAvatarController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -23,10 +24,20 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('login', [AuthenController::class, 'login']);
 Route::post('register', [AuthenController::class, 'register']);
+Route::post('refresh', [AuthenController::class, 'refreshToken']);
 Route::group(['middleware' => 'auth:api'], function(){
     Route::post('details', [AuthenController::class, 'details']);
-    Route::get('/token/revoke', function (Request $request) {
-        dd($request);
+    Route::get('revoke', function (Request $request) {
+        $user = Auth::user()->token();
+        $user->revoke();
+        // DB::table('oauth_access_tokens')
+        //     ->where('user_id', $request->user()->id)
+        //     ->update([
+        //         'revoked' => true
+        //     ]);
+        return response()->json('DONE');
+    });
+    Route::get('revoke/all', function (Request $request) {
         DB::table('oauth_access_tokens')
             ->where('user_id', $request->user()->id)
             ->update([
@@ -35,5 +46,5 @@ Route::group(['middleware' => 'auth:api'], function(){
         return response()->json('DONE');
     });
 });
-Route::get('test', [UserAvatarController::class, 'getUserWithAvatar']);
+Route::get('test', [AuthenController::class, 'test']);
 // Route::get('getRole',)

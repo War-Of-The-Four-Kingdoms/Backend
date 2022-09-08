@@ -14,7 +14,7 @@ class CardSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('card')->insert([
+        DB::table('cards')->insert([
             //Equipment
             //- Weapon
             ['name' => 'ถุงมือขนหมีควาย','type' => 'equipment','decision' => false,'distance' => 3,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'weapon','item_name' => 'bear_glove'],
@@ -37,8 +37,22 @@ class CardSeeder extends Seeder
             ['name' => 'รถถัง','type' => 'equipment','decision' => false,'distance' => -1,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'mount','item_name' => 'tank'],
             ['name' => 'สิบล้อ','type' => 'equipment','decision' => false,'distance' => -1,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'mount','item_name' => 'truck'],
             //Trick
-
+            ['name' => 'กองโจรซุ่มตี','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'ambush'],
+            ['name' => 'ท้าดวล','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'duel'],
+            ['name' => 'ยืมดาบฆ่าคน','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'hitman'],
+            ['name' => 'จิบชา','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'teatime'],
+            ['name' => 'ตบทรัพย์','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'steal'],
+            ['name' => 'แก๊งคอลเซ็นเตอร์','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'callcenter'],
+            ['name' => 'แบล็ค คิง บาร์','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => true,'equipment_type' => null,'item_name' => 'bkb'],
+            ['name' => 'รัสเซียน รูเล็ต ','type' => 'trick','decision' => true,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'russianroulette'],
+            ['name' => 'ห่าฝนธนูเพลิง','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'arrowshower'],
+            ['name' => 'งานสังสรรค์ของผู้คน ','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'banquet'],
+            ['name' => 'สอนเชิง ','type' => 'trick','decision' => true,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'coaching'],
+            ['name' => 'ไหจอมละโมบ','type' => 'trick','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'greedypot'],
             //Active
+            ['name' => 'โจมตี','type' => 'active','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => null,'item_name' => 'attack'],
+            ['name' => 'ป้องกัน','type' => 'active','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => true,'equipment_type' => null,'item_name' => 'defense'],
+            ['name' => 'ฟื้นฟู','type' => 'active','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => true,'equipment_type' => null,'item_name' => 'heal'],
         ]);
     }
 }

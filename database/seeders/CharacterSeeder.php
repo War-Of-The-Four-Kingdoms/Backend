@@ -14,7 +14,7 @@ class CharacterSeeder extends Seeder
      */
     public function run()
     {
-        DB::table('character')->insert([
+        DB::table('characters')->insert([
             //Demon
             ['name' => 'เวตาล', 'tribe' => 'demon', 'hp' => 3,'gender' => 'male'],
             ['name' => 'ปีศาจผีเสี่ยงโชค', 'tribe' => 'demon', 'hp' => 4,'gender' => 'female'],

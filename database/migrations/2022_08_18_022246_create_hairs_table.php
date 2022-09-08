@@ -16,7 +16,7 @@ class CreateHairsTable extends Migration
         Schema::create('hairs', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('image');
+            $table->string('image')->nullable();
             $table->timestamps();
         });
     }
