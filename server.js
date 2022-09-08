@@ -68,11 +68,9 @@ io.on('connection', (socket) => {
         }
     })
     socket.on('start game', (data) => {
-        // let roles = $.get('getRoles');
-        let roles = ['king','knight','noble','villager','villager','villager'];
         let room_pos = rooms.find(r => r.code == data.code).positions;
-        let new_r = roles.slice(0,room_pos.length)
-        let shufflerole = new_r.sort((a, b) => 0.5 - Math.random());
+        let roles = $.get('getRole',{'player_num': room_pos.length});
+        let shufflerole = roles.sort((a, b) => 0.5 - Math.random());
         console.log(shufflerole);
         room_pos.forEach((value, i) => {
             value.role = shufflerole[i];
@@ -98,12 +96,13 @@ io.on('connection', (socket) => {
     //    pos>0?pos--:pos=0;
     //    console.log("A number of players now ",users.length);
     });
-    socket.on('start', (username) => {
+    socket.on('start', (data) => {
         const user = {
-            username: username,
+            username: data.username,
             id: socket.id,
             position: 0,
-            room: ''
+            room: '',
+            uuid: data.uuid,
         };
         users.push(user);
     });

@@ -88,12 +88,11 @@ class AuthenController extends BaseController
         }
 
         $data = $request->only('email','name','password','mobile');
-        $uuid = bin2hex(random_bytes(10));
         $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => bcrypt($data['password']),
-            'uuid' => $uuid
+            'uuid' => uniqid()
         ]);
 
         $request->request->add([

@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthenController;
+use App\Http\Controllers\GameController;
 use App\Http\Controllers\UserAvatarController;
+use App\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -46,5 +48,6 @@ Route::group(['middleware' => 'auth:api'], function(){
         return response()->json('DONE');
     });
 });
+Route::get('getRole', [GameController::class, 'getRoleList']);
 Route::get('test', [AuthenController::class, 'test']);
 // Route::get('getRole',)
