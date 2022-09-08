@@ -100,6 +100,7 @@ io.on('connection', (socket) => {
                 console.log(room);
                 if(room.host == socket.id && room.positions.length != 0){
                     room.host = room.positions[0].uid;
+                    io.to(room.code).emit('change host',room.host);
                 }
                 console.log(room);
                 io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
@@ -122,6 +123,7 @@ io.on('connection', (socket) => {
                     room.positions = room.positions.filter(p => p.uid != socket.id);
                     if(room.host == socket.id && room.positions.length != 0){
                         room.host = room.positions[0].uid;
+                        io.to(room.code).emit('change host',room.host);
                     }
                     io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
                     user.room = '';
@@ -131,7 +133,6 @@ io.on('connection', (socket) => {
                 socket.emit('already connect');
             }
         }else{
-            console.log('do');
             const user = {
                 username: data.username,
                 id: socket.id,
@@ -168,13 +169,14 @@ io.on('connection', (socket) => {
     });
     socket.on('join lobby', (data) => {
         if(users.find(u => u.id == socket.id)){
-
-        }else{    socket.join(data.code);
-            // rooms.find(r => r.code == data.code).players.push(socket);
+            socket.join(data.code);
             rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0});
             users.find(u => u.id == socket.id ).room = data.code;
             socket.emit('assign position',rooms.find(r => r.code == data.code).positions);
-            socket.emit('no user info');
+            socket.emit('user checked',{is_created: true, code: data.code});
+        }else{
+
+            socket.emit('user checked',{is_created: false});
         }
     });
     socket.on('leave lobby', (data) => {
@@ -184,6 +186,7 @@ io.on('connection', (socket) => {
         room.positions = room.positions.filter(p => p.uid != socket.id);
         if(room.host == socket.id && room.positions.length != 0){
             room.host = room.positions[0].uid;
+            io.to(room.code).emit('change host',room.host);
         }
         users.find(u => u.id == socket.id ).room = '';
         users.find(u => u.id == socket.id ).position = 0;
