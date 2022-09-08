@@ -1,6 +1,7 @@
 const express = require('express');
 const { message } = require('laravel-mix/src/Log');
 const jsdom = require('jsdom');
+const e = require('express');
 const dom = new jsdom.JSDOM("");
 const $ = require('jquery')(dom.window)
 const app = express();
@@ -90,49 +91,100 @@ io.on('connection', (socket) => {
         socket.to(data.code).emit('sctc',{username: users.find(u => u.id == socket.id).username, message: data.message});
     });
     socket.on('disconnect', () => {
+        if(users.find(u => u.id == socket.id)){
+            if(users.find(u => u.id == socket.id).room != ''){
+                console.log('do');
+                let room = rooms.find(r => r.positions.find(p => p.uid == socket.id));
+                console.log(room);
+                room.positions = room.positions.filter(p => p.uid != socket.id);
+                console.log(room);
+                if(room.host == socket.id && room.positions.length != 0){
+                    room.host = room.positions[0].uid;
+                }
+                console.log(room);
+                io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
+            }
+        }
         users = users.filter(u => u.id != socket.id );
+
     //     console.log('A player disconnected');
     //    users.splice(users.indexOf(socket),1);
     //    pos>0?pos--:pos=0;
     //    console.log("A number of players now ",users.length);
     });
     socket.on('start', (data) => {
-        const user = {
-            username: data.username,
-            id: socket.id,
-            position: 0,
-            room: '',
-            uuid: data.uuid,
-        };
-        users.push(user);
+        let user = users.find(u => u.uuid == data.uuid);
+        if(user != null){
+            if(user.id == socket.id){
+                if(user.room != ''){
+                    let room = rooms.find(r => r.positions.find(p => p.uid == socket.id));
+                    socket.leave(room.code);
+                    room.positions = room.positions.filter(p => p.uid != socket.id);
+                    if(room.host == socket.id && room.positions.length != 0){
+                        room.host = room.positions[0].uid;
+                    }
+                    io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
+                    user.room = '';
+                    user.position = 0;
+                }
+            }else{
+                socket.emit('already connect');
+            }
+        }else{
+            console.log('do');
+            const user = {
+                username: data.username,
+                id: socket.id,
+                position: 0,
+                room: '',
+                uuid: data.uuid,
+            };
+            users.push(user);
+        }
+
+
     });
     socket.on('create lobby', (data) => {
-        socket.join(data.code);
-        const room = {
-            code: data.code,
-            host: socket.id,
-            max: data.max_player,
-            // private: data.private,
-            // players: [],
-            positions: []
-        };
-        // room.players.push(socket);
-        room.positions.push({uid: socket.id, position: 0});
-        rooms.push(room);
-        users.find(u => u.id == socket.id ).room = data.code;
+        let user = users.find(u => u.id == socket.id);
+        if(users.find(u => u.id == socket.id)){
+            socket.join(data.code);
+            const room = {
+                code: data.code,
+                host: socket.id,
+                max: data.max_player,
+                // private: data.private,
+                // players: [],
+                positions: []
+            };
+            // room.players.push(socket);
+            room.positions.push({uid: socket.id, position: 0});
+            rooms.push(room);
+            users.find(u => u.id == socket.id ).room = data.code;
+            socket.emit('user checked',{is_created: true, code: data.code});
+        }else{
+            socket.emit('user checked',{is_created: false});
+        }
+
     });
     socket.on('join lobby', (data) => {
-        socket.join(data.code);
-        // rooms.find(r => r.code == data.code).players.push(socket);
-        rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0});
-        users.find(u => u.id == socket.id ).room = data.code;
-        socket.emit('assign position',rooms.find(r => r.code == data.code).positions);
+        if(users.find(u => u.id == socket.id)){
+
+        }else{    socket.join(data.code);
+            // rooms.find(r => r.code == data.code).players.push(socket);
+            rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0});
+            users.find(u => u.id == socket.id ).room = data.code;
+            socket.emit('assign position',rooms.find(r => r.code == data.code).positions);
+            socket.emit('no user info');
+        }
     });
     socket.on('leave lobby', (data) => {
         socket.leave(data.code);
         let room = rooms.find(r => r.code == data.code);
         // room.players.pop(socket);
-        room.positions.filter(p => p.uid != socket.id);
+        room.positions = room.positions.filter(p => p.uid != socket.id);
+        if(room.host == socket.id && room.positions.length != 0){
+            room.host = room.positions[0].uid;
+        }
         users.find(u => u.id == socket.id ).room = '';
         users.find(u => u.id == socket.id ).position = 0;
     });
