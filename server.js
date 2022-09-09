@@ -14,6 +14,7 @@ var rooms = [];
 var current_turn = [];
 var timeout = [];
 var pos = [];
+const myVar = process.env.MY_VAR;
 const MAX_WAITING = 7000;
 
 // function next_turn(code){
@@ -42,7 +43,6 @@ function next_turn(socket,code){
     }else{
         socket.to(sid).emit('your turn');
     }
-   console.log(code , " next turn triggered " , pos[code]);
    triggerTimeout(socket,code);
 }
 
@@ -52,7 +52,6 @@ function triggerTimeout(socket,code){
 
 function resetTimeout(code){
    if(typeof timeout[code] == 'object'){
-     console.log("timeout reset");
      clearTimeout(timeout[code]);
    }
 }
@@ -69,8 +68,10 @@ io.on('connection', (socket) => {
         }
     })
     socket.on('start game', (data) => {
+        console.log(myVar);
         let room_pos = rooms.find(r => r.code == data.code).positions;
-        let roles = $.get('getRole',{'player_num': room_pos.length});
+        let roles = $.get(myVar+'/getRole',{'player_num': room_pos.length});
+        console.log(roles);
         let shufflerole = roles.sort((a, b) => 0.5 - Math.random());
         room_pos.forEach((value, i) => {
             value.role = shufflerole[i];
@@ -80,7 +81,6 @@ io.on('connection', (socket) => {
         pos[data.code] = 1;
         setTimeout(()=>{next_turn(socket,data.code);},5000);
         // let sid = next_turn(socket,data.code);
-        // console.log(sid);
         // socket.to(sid).emit('your turn');
     });
 
@@ -107,13 +107,10 @@ io.on('connection', (socket) => {
         }
         users = users.filter(u => u.id != socket.id );
 
-    //     console.log('A player disconnected');
     //    users.splice(users.indexOf(socket),1);
     //    pos>0?pos--:pos=0;
-    //    console.log("A number of players now ",users.length);
     });
     socket.on('start', (data) => {
-        console.log('do');
         let user = users.find(u => u.uuid == data.uuid);
         if(user != null){
             if(user.id == socket.id){
@@ -145,7 +142,6 @@ io.on('connection', (socket) => {
                 uuid: data.uuid,
             };
             let ro = rooms.find(r => r.positions.find(p => p.uid == socket.id) != undefined);
-            console.log(ro);
             if(ro != undefined){
                 user.room = ro.code;
             }
@@ -226,7 +222,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('get room info', (data) => {
-        console.log(rooms);
         if(users.find(u => u.id == socket.id) === undefined){
             if(rooms.includes(rooms.find(r => r.code == data.code))){
                 socket.join(data.code);
