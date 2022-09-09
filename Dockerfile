@@ -21,10 +21,10 @@ RUN npm --version
 
 # Install php  
 RUN apt update
-RUN apt install software-properties-common
+RUN apt install software-properties-common -y
 RUN add-apt-repository ppa:ondrej/php
 RUN apt update
-RUN apt install php8.1
+RUN apt install php8.1 -y
 RUN php -v
 
 # Install composer
