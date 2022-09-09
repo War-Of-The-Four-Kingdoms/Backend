@@ -96,7 +96,7 @@ io.on('connection', (socket) => {
                 if(room.positions.length != 0){
                     if(room.host == socket.id){
                         room.host = room.positions[0].uid;
-                        io.to(room.code).emit('change host',room.host);
+                        io.to(room.code).emit('change host',{host: room.host, positions: room.positions});
                     }
                     io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
                 }else{
@@ -124,7 +124,7 @@ io.on('connection', (socket) => {
                     if(room.positions.length != 0){
                         if(room.host == socket.id){
                             room.host = room.positions[0].uid;
-                            io.to(room.code).emit('change host',room.host);
+                            io.to(room.code).emit('change host',{host: room.host, positions: room.positions});
                         }
                         io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
                     }else{
@@ -195,7 +195,7 @@ io.on('connection', (socket) => {
         if(room.positions.length != 0){
             if(room.host == socket.id){
                 room.host = room.positions[0].uid;
-                io.to(room.code).emit('change host',room.host);
+                io.to(room.code).emit('change host',{host: room.host, positions: room.positions});
             }
             io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
         }else{
