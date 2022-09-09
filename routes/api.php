@@ -28,7 +28,7 @@ Route::post('login', [AuthenController::class, 'login']);
 Route::post('register', [AuthenController::class, 'register']);
 Route::post('refresh', [AuthenController::class, 'refreshToken']);
 Route::group(['middleware' => 'auth:api'], function(){
-    Route::post('details', [AuthenController::class, 'details']);
+    Route::get('details', [AuthenController::class, 'details']);
     Route::get('revoke', function (Request $request) {
         $user = Auth::user()->token();
         $user->revoke();
