@@ -53,6 +53,7 @@ RUN npm install pm2@latest -g
 RUN apt-get install nano -y
 
 # Install php dependency
+RUN apt-get install zip
 RUN composer install --ignore-platform-reqs --prefer-dist
 RUN apt-get install php-mysql -y
 RUN php artisan key:generate
