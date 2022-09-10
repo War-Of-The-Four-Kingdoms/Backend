@@ -36,10 +36,9 @@ function next_turn(code){
 
    let sid = rooms.find(r => r.code == code).positions.find(p => p.position == current_turn_position[code]).uid;
 //    socket.to(code).emit('other turn',{username: users.find(u => u.room == code && u.position == pos[code]).username});
-        io.to(code).emit('next turn',current_turn_position[code]);
+    io.to(code).emit('next turn',current_turn_position[code]);
     turn[code] = ((turn[code]+1) % pos[code].length);
     current_turn_position[code] = pos[code][turn[code]];
-    console.log(turn[code]);
    triggerTimeout(code);
 }
 
@@ -83,6 +82,7 @@ io.on('connection', (socket) => {
         current_turn_position[data.code] = room_pos.find(rp => rp.role == 'king').position;
         turn[data.code] = pos[data.code].indexOf(current_turn_position[data.code]);
         setTimeout(()=>{next_turn(data.code);},5000);
+        rooms.find(r => r.code == data.code).is_started = true;
 
         // let sid = next_turn(socket,data.code);
         // socket.to(sid).emit('your turn');
@@ -96,17 +96,45 @@ io.on('connection', (socket) => {
         if(users.find(u => u.id == socket.id)){
             if(users.find(u => u.id == socket.id).room != ''){
                 let room = rooms.find(r => r.positions.find(p => p.uid == socket.id));
-                room.positions = room.positions.filter(p => p.uid != socket.id);
-                if(room.positions.length != 0){
+                console.log(room);
+                if(room.is_started){
+                    // if(room.positions.length == 1){
+                    //     resetTimeout(room.code);
+                    //     rooms.pop(room);
+                    // }
+                    let player = room.positions.find(p => p.uid == socket.id);
+                    player.leaved = true;
+
+                    io.to(room.code).emit('player leave',player);
                     if(room.host == socket.id){
-                        room.host = room.positions[0].uid;
+                        if(room.host == room.positions[0].uid){
+                            room.host = room.positions[1].uid;
+                        }else{
+                            room.host = room.positions[0].uid;
+                        }
                         io.to(room.code).emit('change host',{host: room.host, positions: room.positions});
                     }
-                    io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
+                    pos[room.code] = pos[room.code].filter(p => p != player.position);
+                    if(turn[room.code] == 0){
+                        turn[room.code] = pos[room.code].length-1;
+                    }else{
+                        turn[room.code]--;
+                    }
+                    if(current_turn_position[room.code] == player.position){
+                        current_turn_position[room.code] = pos[room.code][turn[room.code]]
+                    }
                 }else{
-                    rooms.pop(room);
+                    room.positions = room.positions.filter(p => p.uid != socket.id);
+                    if(room.positions.length != 0){
+                        if(room.host == socket.id){
+                            room.host = room.positions[0].uid;
+                            io.to(room.code).emit('change host',{host: room.host, positions: room.positions});
+                        }
+                        io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
+                    }else{
+                        rooms.pop(room);
+                    }
                 }
-
             }
         }
         users = users.filter(u => u.id != socket.id );
@@ -121,15 +149,39 @@ io.on('connection', (socket) => {
                 if(user.room != ''){
                     let room = rooms.find(r => r.positions.find(p => p.uid == socket.id));
                     socket.leave(room.code);
-                    room.positions = room.positions.filter(p => p.uid != socket.id);
-                    if(room.positions.length != 0){
+                    if(room.is_started){
+                        let player = room.positions.find(p => p.uid == socket.id);
+                        player.leaved = true;
+
+                        io.to(room.code).emit('player leave',player);
                         if(room.host == socket.id){
-                            room.host = room.positions[0].uid;
+                            if(room.host == room.positions[0].uid){
+                                room.host = room.positions[1].uid;
+                            }else{
+                                room.host = room.positions[0].uid;
+                            }
                             io.to(room.code).emit('change host',{host: room.host, positions: room.positions});
                         }
-                        io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
+                        pos[room.code] = pos[room.code].filter(p => p != player.position);
+                        if(turn[room.code] == 0){
+                            turn[room.code] = pos[room.code].length-1;
+                        }else{
+                            turn[room.code]--;
+                        }
+                        if(current_turn_position[room.code] == player.position){
+                            current_turn_position[room.code] = pos[room.code][turn[room.code]]
+                        }
                     }else{
-                        rooms.pop(room);
+                        room.positions = room.positions.filter(p => p.uid != socket.id);
+                        if(room.positions.length != 0){
+                            if(room.host == socket.id){
+                                room.host = room.positions[0].uid;
+                                io.to(room.code).emit('change host',{host: room.host, positions: room.positions});
+                            }
+                            io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
+                        }else{
+                            rooms.pop(room);
+                        }
                     }
                     user.room = '';
                     user.position = 0;
@@ -161,13 +213,14 @@ io.on('connection', (socket) => {
             const room = {
                 code: data.code,
                 host: socket.id,
+                is_started: false,
                 max: data.max_player,
                 // private: data.private,
                 // players: [],
                 positions: []
             };
             // room.players.push(socket);
-            room.positions.push({uid: socket.id, position: 0});
+            room.positions.push({uid: socket.id, position: 0, leaved: false});
             rooms.push(room);
             users.find(u => u.id == socket.id ).room = data.code;
             socket.emit('user checked',{is_created: true, code: data.code});
@@ -179,7 +232,7 @@ io.on('connection', (socket) => {
     socket.on('join lobby', (data) => {
         if(users.find(u => u.id == socket.id)){
             socket.join(data.code);
-            rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0});
+            rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0, leaved: false});
             users.find(u => u.id == socket.id ).room = data.code;
             socket.emit('user checked',{is_created: true, code: data.code});
             socket.emit('assign position',rooms.find(r => r.code == data.code).positions);
@@ -229,19 +282,20 @@ io.on('connection', (socket) => {
         if(users.find(u => u.id == socket.id) === undefined){
             if(rooms.includes(rooms.find(r => r.code == data.code))){
                 socket.join(data.code);
-                rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0});
+                rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0, leaved: false});
                 socket.emit('assign position',rooms.find(r => r.code == data.code).positions);
             }else{
                 socket.join(data.code);
                 const room = {
                     code: data.code,
                     host: socket.id,
+                    is_started: false,
                     max: data.max_player,
                     // private: data.private,
                     // players: [],
                     positions: []
                 };
-                room.positions.push({uid: socket.id, position: 0});
+                room.positions.push({uid: socket.id, position: 0, leaved: false});
                 rooms.push(room);
             }
             let rList = JSON.parse(JSON.stringify(rooms));
