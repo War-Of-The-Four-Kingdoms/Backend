@@ -215,7 +215,7 @@ io.on('connection', (socket) => {
                 host: socket.id,
                 is_started: false,
                 max: data.max_player,
-                // private: data.private,
+                private: data.private,
                 // players: [],
                 positions: []
             };
@@ -231,12 +231,14 @@ io.on('connection', (socket) => {
     });
     socket.on('join lobby', (data) => {
         if(users.find(u => u.id == socket.id)){
+            console.log('join success');
             socket.join(data.code);
             rooms.find(r => r.code == data.code).positions.push({uid: socket.id, position: 0, leaved: false});
             users.find(u => u.id == socket.id ).room = data.code;
             socket.emit('user checked',{is_created: true, code: data.code});
             socket.emit('assign position',rooms.find(r => r.code == data.code).positions);
         }else{
+            console.log('join fail');
             socket.emit('user checked',{is_created: false});
         }
     });
@@ -275,7 +277,9 @@ io.on('connection', (socket) => {
     // });
 
     socket.on('list room', () => {
+        console.log('list');
         socket.emit('set room list', rooms.filter(r => r.private == false));
+        console.log(rooms);
     });
 
     socket.on('get room info', (data) => {
@@ -291,7 +295,7 @@ io.on('connection', (socket) => {
                     host: socket.id,
                     is_started: false,
                     max: data.max_player,
-                    // private: data.private,
+                    private: data.private,
                     // players: [],
                     positions: []
                 };
