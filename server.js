@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
     })
     socket.on('start game', (data) => {
         let room = rooms.find(r => r.code == data.code);
-        if(room.positions.length < 4){
+        if(room.positions.filter(p => p.position != 0).length < 4){
             socket.emit('need more player');
         }else{
             let room_pos = room.positions;
