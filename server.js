@@ -32,23 +32,19 @@ const MAX_WAITING = 7000;
 //    return rooms.find(r => r.code == code).positions.find(p => p.position == pos[code]).uid;
 
 // }
-function next_turn(socket,code){
+function next_turn(code){
 
    let sid = rooms.find(r => r.code == code).positions.find(p => p.position == current_turn_position[code]).uid;
 //    socket.to(code).emit('other turn',{username: users.find(u => u.room == code && u.position == pos[code]).username});
-    if(socket.id == sid){
-        socket.emit('your turn');
-    }else{
-        socket.to(sid).emit('your turn');
-    }
+        io.to(code).emit('next turn',current_turn_position[code]);
     turn[code] = ((turn[code]+1) % pos[code].length);
     current_turn_position[code] = pos[code][turn[code]];
     console.log(turn[code]);
-   triggerTimeout(socket,code);
+   triggerTimeout(code);
 }
 
-function triggerTimeout(socket,code){
-    timeout[code] = setTimeout(()=>{next_turn(socket,code);},MAX_WAITING);
+function triggerTimeout(code){
+    timeout[code] = setTimeout(()=>{next_turn(code);},MAX_WAITING);
 }
 
 function resetTimeout(code){
@@ -86,7 +82,7 @@ io.on('connection', (socket) => {
         io.in(data.code).emit('assign roles',room_pos);
         current_turn_position[data.code] = room_pos.find(rp => rp.role == 'king').position;
         turn[data.code] = pos[data.code].indexOf(current_turn_position[data.code]);
-        setTimeout(()=>{next_turn(socket,data.code);},5000);
+        setTimeout(()=>{next_turn(data.code);},5000);
 
         // let sid = next_turn(socket,data.code);
         // socket.to(sid).emit('your turn');
