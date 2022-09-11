@@ -7,11 +7,10 @@ use Illuminate\Support\Facades\Auth;
 
 class UserAvatarController extends Controller
 {
-    public function getUserWithAvatar()
-    {
-        $user = Auth::user();
-        $user->avatar = Avatar
-        return response()->json(['success' => $user], $this->successStatus);
-    }
+    // public function getUserWithAvatar()
+    // {
+    //     $user = Auth::user();
+    //     return response()->json(['success' => $user], $this->successStatus);
+    // }
 
 }

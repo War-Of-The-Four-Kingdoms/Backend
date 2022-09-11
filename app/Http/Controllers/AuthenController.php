@@ -145,4 +145,11 @@ class AuthenController extends BaseController
         $user = Auth::user();
         return response()->json(['success' => $user], $this->successStatus);
     }
+
+    public function editUsername(Request $request){
+        $user = User::where('uuid',Auth::user()->uuid)->first();
+        $user->name = $request->name;
+        $user->save();
+        return response()->json(['success' => $user], $this->successStatus);
+    }
 }

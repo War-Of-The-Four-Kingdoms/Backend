@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Game;
+use App\Models\Player;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
 use stdClass;
 
@@ -24,5 +27,26 @@ class GameController extends Controller
             }
         }
         return response()->json(['roles' => $roles]);
+    }
+
+    public function storeGameData(Request $request){
+        $game = Game::create([
+            'roomcode' => $request->room->code,
+            'maxplayer' => $request->room->max,
+            'turn' => $request->turn_count,
+            'is_end' => false
+        ]);
+
+        foreach($request->room->positions as $pl){
+            Player::create([
+                'game' => $game->id,
+                'user' => User::where('uuid',$pl->uuid),
+                'character' => $pl->character,
+                'role' => $pl->role,
+                'remain_hp' => $pl->remain_hp,
+                'is_playing' => false
+            ]);
+        }
+
     }
 }

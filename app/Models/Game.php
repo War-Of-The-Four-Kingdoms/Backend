@@ -15,4 +15,5 @@ class Game extends Model
         'turn',
         'is_end'
     ];
+
 }
