@@ -81,7 +81,7 @@ jobs:
             docker exec -i backend pm2 start server.js
             docker exec -i backend pm2 start "php artisan serve --host=0.0.0.0"
             echo "----- DOCKER EXEC RUN PHP -----"
-            docker exec -i backend php artisan migrate:fresh --seed
+            docker exec -i backend php artisan migrate:fresh --seed -y
             docker exec -i backend php artisan passport:install --uuids --force -n
             echo ""
             echo "----- DOCKER LOGOUT -----"
