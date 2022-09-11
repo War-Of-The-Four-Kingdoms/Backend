@@ -64,9 +64,9 @@ io.on('connection', (socket) => {
     })
     socket.on('start game', (data) => {
         let room = rooms.find(r => r.code == data.code);
-        // if(room.positions.filter(p => p.position != 0).length < 4){
-        //     socket.emit('need more player');
-        // }else{
+        if(room.positions.filter(p => p.position != 0).length < 4){
+            socket.emit('need more player');
+        }else{
             let room_pos = room.positions;
             let roles = [{ name: 'king', extra_hp: 1 },
             { name: 'knight', extra_hp: 0 },
@@ -88,7 +88,7 @@ io.on('connection', (socket) => {
             turn[data.code] = pos[data.code].indexOf(next_turn_position[data.code]);
             setTimeout(()=>{next_turn(data.code);},5000);
             room.is_started = true;
-        // }
+        }
         // let sid = next_turn(socket,data.code);
         // socket.to(sid).emit('your turn');
     });
