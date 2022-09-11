@@ -108,9 +108,7 @@ io.on('connection', (socket) => {
                     }
                     let player = room.positions.find(p => p.uid == socket.id);
                     player.leaved = true;
-                    if(next_turn_position[room.code] == player.position){
-                        next_turn_position[room.code] = pos[room.code][turn[room.code]]
-                    }
+
                     io.to(room.code).emit('player leave',player);
                     if(room.host == socket.id){
                         if(room.host == room.positions[0].uid){
@@ -125,6 +123,9 @@ io.on('connection', (socket) => {
                         turn[room.code] = pos[room.code].length-1;
                     }else{
                         turn[room.code]--;
+                    }
+                    if(next_turn_position[room.code] == player.position){
+                        next_turn_position[room.code] = pos[room.code][turn[room.code]]
                     }
                 }else{
                     room.positions = room.positions.filter(p => p.uid != socket.id);
@@ -159,9 +160,6 @@ io.on('connection', (socket) => {
                         }
                         let player = room.positions.find(p => p.uid == socket.id);
                         player.leaved = true;
-                        if(next_turn_position[room.code] == player.position){
-                            next_turn_position[room.code] = pos[room.code][turn[room.code]];
-                        }
                         io.to(room.code).emit('player leave',player);
                         if(room.host == socket.id){
                             if(room.host == room.positions[0].uid){
@@ -176,6 +174,9 @@ io.on('connection', (socket) => {
                             turn[room.code] = pos[room.code].length-1;
                         }else{
                             turn[room.code]--;
+                        }
+                        if(next_turn_position[room.code] == player.position){
+                            next_turn_position[room.code] = pos[room.code][turn[room.code]];
                         }
                     }else{
                         room.positions = room.positions.filter(p => p.uid != socket.id);
