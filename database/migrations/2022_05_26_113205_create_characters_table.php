@@ -19,6 +19,7 @@ class CreateCharactersTable extends Migration
             $table->enum('tribe',['human','robot','animal','demon']);
             $table->integer('hp');
             $table->enum('gender',['male','female']);
+            $table->boolean('is_leader');
             $table->timestamps();
         });
     }

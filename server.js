@@ -37,7 +37,7 @@ function next_turn(code){
 //    let sid = rooms.find(r => r.code == code).positions.find(p => p.position == current_turn_position[code]).uid;
 //    socket.to(code).emit('other turn',{username: users.find(u => u.room == code && u.position == pos[code]).username});
     current_turn_position[code] = next_turn_position[code];
-    io.to(code).emit('next turn',current_turn_position[code]);
+    io.in(code).emit('next turn',current_turn_position[code]);
     turn[code] = ((turn[code]+1) % pos[code].length);
     next_turn_position[code] = pos[code][turn[code]];
    triggerTimeout(code);
@@ -63,18 +63,14 @@ io.on('connection', (socket) => {
         }
     })
     socket.on('start game', (data) => {
+        let nChar = data.characters.normal;
+        let lChar = data.characters.leader;
         let room = rooms.find(r => r.code == data.code);
         if(room.positions.filter(p => p.position != 0).length < 4){
             socket.emit('need more player');
         }else{
             let room_pos = room.positions;
-            let roles = [{ name: 'king', extra_hp: 1 },
-            { name: 'knight', extra_hp: 0 },
-            { name: 'noble', extra_hp: 0 },
-            { name: 'villager', extra_hp: 0 },
-            { name: 'villager', extra_hp: 0 },
-            { name: 'villager', extra_hp: 0 }
-            ]
+            let roles = data.roles;
             let shufflerole = roles.slice(0,room_pos.length).sort((a, b) => 0.5 - Math.random());
             pos[data.code] = [];
             room_pos.forEach((value, i) => {
@@ -86,13 +82,47 @@ io.on('connection', (socket) => {
             io.in(data.code).emit('assign roles',room_pos);
             next_turn_position[data.code] = room_pos.find(rp => rp.role == 'king').position;
             turn[data.code] = pos[data.code].indexOf(next_turn_position[data.code]);
-            setTimeout(()=>{next_turn(data.code);},5000);
+            // setTimeout(()=>{next_turn(data.code);},5000);
             room.is_started = true;
+            const kingNormalChar = nChar[Math.floor(Math.random() * nChar.length)];
+            nChar = nChar.filter(c => c != kingNormalChar);
+            lChar.push(kingNormalChar);
+            room.positions.forEach(p => {
+                p.char_selected = false;
+                if(p.role == 'king'){
+                    p.pools = lChar;
+                }
+                else{
+                    let normalChar = [];
+                    for(let i=0; i<4; i++){
+                        const randChar = nChar[Math.floor(Math.random() * nChar.length)];
+                        normalChar.push(randChar);
+                        nChar = nChar.filter(c => c != randChar);
+                    }
+                    p.pools = normalChar;
+                }
+            });
+            setTimeout(()=>{
+                room.positions.forEach(p => {
+                    io.to(p.uid).emit('random characters',p.pools);
+                });
+            },5000);
         }
-        // let sid = next_turn(socket,data.code);
-        // socket.to(sid).emit('your turn');
     });
 
+    socket.on('character selected',(data) => {
+        let room = rooms.find(r => r.code == data.code);
+        let me = room.positions.find(p => p.uid == socket.id);
+        me.character = me.pools.find(pool => pool.id = data.cid);
+        me.char_selected = true;
+        delete me.pools;
+        if(room.positions.filter(p => p.char_selected == false).length != 0){
+            socket.emit('waiting other select character');
+        }else{
+            socket.emit('ready to start');
+            setTimeout(()=>{next_turn(data.code);},5000);
+        }
+    });
 
     socket.on('scts',(data) => {
         socket.to(data.code).emit('sctc',{username: users.find(u => u.id == socket.id).username, message: data.message});

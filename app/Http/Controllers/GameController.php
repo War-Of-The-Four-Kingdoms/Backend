@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Character;
 use App\Models\Game;
 use App\Models\Player;
 use App\Models\Role;
@@ -27,6 +28,12 @@ class GameController extends Controller
             }
         }
         return response()->json(['roles' => $roles]);
+    }
+
+    public function getCharacterList(Request $request){
+        $leader_chars = Character::select('id','name','tribe','hp','gender')->where('is_leader',true)->get();
+        $normal_chars = Character::select('id','name','tribe','hp','gender')->where('is_leader',false)->get();
+        return response()->json(['leader' => $leader_chars, 'normal' => $normal_chars]);
     }
 
     public function storeGameData(Request $request){
