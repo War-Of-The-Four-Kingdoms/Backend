@@ -79,7 +79,11 @@ io.on('connection', (socket) => {
                 pos[data.code].push(value.position) ;
             });
             pos[data.code].sort((a, b) => a - b);
-            io.in(data.code).emit('assign roles',room_pos);
+            room.positions.forEach(p => {
+                const king = room_pos.find(rp => rp.role == 'king');
+                const me = room_pos.find(rp => rp.uid == p.uid);
+                io.to(p.uid).emit('assign roles',{king: king,me: me});
+            });
             next_turn_position[data.code] = room_pos.find(rp => rp.role == 'king').position;
             turn[data.code] = pos[data.code].indexOf(next_turn_position[data.code]);
             // setTimeout(()=>{next_turn(data.code);},5000);
