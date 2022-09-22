@@ -20,6 +20,7 @@ class CreateCharactersTable extends Migration
             $table->integer('hp');
             $table->enum('gender',['male','female']);
             $table->boolean('is_leader');
+            $table->string('image_name');
             $table->timestamps();
         });
     }

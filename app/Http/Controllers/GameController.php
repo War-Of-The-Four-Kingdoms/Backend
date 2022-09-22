@@ -31,8 +31,8 @@ class GameController extends Controller
     }
 
     public function getCharacterList(Request $request){
-        $leader_chars = Character::select('id','name','tribe','hp','gender')->where('is_leader',true)->get();
-        $normal_chars = Character::select('id','name','tribe','hp','gender')->where('is_leader',false)->get();
+        $leader_chars = Character::select('id','name','tribe','hp','gender','image_name')->where('is_leader',true)->get();
+        $normal_chars = Character::select('id','name','tribe','hp','gender','image_name')->where('is_leader',false)->get();
         return response()->json(['leader' => $leader_chars, 'normal' => $normal_chars]);
     }
 
