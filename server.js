@@ -121,10 +121,11 @@ io.on('connection', (socket) => {
         me.char_selected = true;
         delete me.pools;
         console.log(me.pools);
+        io.in(data.code).emit('set player character',{position: me.position, character: me.character.image_name});
         if(room.positions.filter(p => p.char_selected == false).length != 0){
             socket.emit('waiting other select character');
         }else{
-            socket.emit('ready to start');
+            io.in(data.code).emit('ready to start');
             setTimeout(()=>{next_turn(data.code);},5000);
         }
     });
