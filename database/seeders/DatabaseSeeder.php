@@ -24,7 +24,8 @@ class DatabaseSeeder extends Seeder
             SkintoneSeeder::class,
             TopSeeder::class,
             FaceSeeder::class,
-            HairSeeder::class
+            HairSeeder::class,
+            TestUserSeeder::class,
         ]);
     }
 }

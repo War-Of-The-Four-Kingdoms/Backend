@@ -120,6 +120,7 @@ io.on('connection', (socket) => {
         me.character = me.pools.find(pool => pool.id = data.cid);
         me.char_selected = true;
         delete me.pools;
+        console.log(me.pools);
         if(room.positions.filter(p => p.char_selected == false).length != 0){
             socket.emit('waiting other select character');
         }else{
