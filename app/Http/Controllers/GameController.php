@@ -10,6 +10,7 @@ use App\Models\Player;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use stdClass;
 
 class GameController extends Controller
@@ -39,7 +40,7 @@ class GameController extends Controller
     }
 
     public function drawCard(Request $request){
-        $d_cards = Carddeck::where('game',Game::where('roomcode',$request->roomcode)->first()->id)->where('in_use',false)->inRandomOrder()->limit(4)->get();
+        $d_cards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->inRandomOrder()->limit(4)->get();
         foreach($d_cards as $d_card){
             $d_card->in_use = true;
             $d_card->save();
@@ -49,22 +50,21 @@ class GameController extends Controller
 
     public function storeGameData(Request $request){
         $game = Game::create([
-            'roomcode' => $request->room->code,
-            'maxplayer' => $request->room->max,
+            'roomcode' => $request->room['code'],
+            'maxplayer' => $request->room['max'],
             'turn' => $request->turn_count,
             'is_end' => false
         ]);
-        foreach($request->room->positions as $pl){
+        foreach($request->room['positions'] as $pl){
             Player::create([
                 'game' => $game->id,
-                'user' => User::where('uuid',$pl->uuid)->first()->id,
-                'character' => $pl->character,
-                'role' => $pl->role,
-                'remain_hp' => $pl->remain_hp,
+                'user' => User::where('uuid',$pl['uuid'])->first()->id,
+                'character' => $pl['character']['id'],
+                'role' => Role::where('name',$pl['role'])->first()->id,
+                'remain_hp' => $pl['remain_hp'],
                 'is_playing' => false
             ]);
         }
-
         $cards = Card::all();
         $symbols = array('club','diamond','heart','spade');
         $codes = array('2','3','4','5','6','7','8','9','10','J','Q','K','A');
@@ -81,7 +81,6 @@ class GameController extends Controller
                 $carddeck->save();
             }
         }
-
 
     }
 

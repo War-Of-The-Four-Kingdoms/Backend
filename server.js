@@ -1,12 +1,10 @@
 const express = require('express');
 const { message } = require('laravel-mix/src/Log');
-const jsdom = require('jsdom');
 const dotenv = require('dotenv');
 const e = require('express');
 const { indexOf } = require('lodash');
-const dom = new jsdom.JSDOM("");
-const $ = require('jquery')(dom.window)
 const app = express();
+var request = require('request');
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
     cors: { origin: "*" }
@@ -19,6 +17,7 @@ var next_turn_position = [];
 var timeout = [];
 var pos = [];
 var turn = [];
+var turn_count = [];
 const apiURL = process.env.API_URL;
 const MAX_WAITING = 7000;
 
@@ -38,6 +37,7 @@ function next_turn(code){
 //    socket.to(code).emit('other turn',{username: users.find(u => u.room == code && u.position == pos[code]).username});
     current_turn_position[code] = next_turn_position[code];
     io.in(code).emit('next turn',current_turn_position[code]);
+    turn_count[code]++;
     turn[code] = ((turn[code]+1) % pos[code].length);
     next_turn_position[code] = pos[code][turn[code]];
    triggerTimeout(code);
@@ -66,9 +66,9 @@ io.on('connection', (socket) => {
         let nChar = data.characters.normal;
         let lChar = data.characters.leader;
         let room = rooms.find(r => r.code == data.code);
-        if(room.positions.filter(p => p.position != 0).length < 4){
-            socket.emit('need more player');
-        }else{
+        // if(room.positions.filter(p => p.position != 0).length < 4){
+        //     socket.emit('need more player');
+        // }else{
             let room_pos = room.positions;
             let roles = data.roles;
             let shufflerole = roles.slice(0,room_pos.length).sort((a, b) => 0.5 - Math.random());
@@ -86,6 +86,7 @@ io.on('connection', (socket) => {
             });
             next_turn_position[data.code] = room_pos.find(rp => rp.role == 'king').position;
             turn[data.code] = pos[data.code].indexOf(next_turn_position[data.code]);
+            turn_count[data.code] = 0;
             // setTimeout(()=>{next_turn(data.code);},5000);
             room.is_started = true;
             const kingNormalChar = nChar[Math.floor(Math.random() * nChar.length)];
@@ -111,7 +112,7 @@ io.on('connection', (socket) => {
                     io.to(p.uid).emit('random characters',p.pools);
                 });
             },5000);
-        }
+        // }
     });
 
     socket.on('character selected',(data) => {
@@ -119,17 +120,27 @@ io.on('connection', (socket) => {
         let me = room.positions.find(p => p.uid == socket.id);
         me.character = me.pools.find(pool => pool.id = data.cid);
         me.char_selected = true;
+        me.remain_hp = me.character.hp + me.extra_hp;
+        me.uuid = users.find(u => u.id == me.uid).uuid;
         delete me.pools;
-        console.log(me.pools);
         io.in(data.code).emit('set player character',{position: me.position, character: me.character.image_name});
         if(room.positions.filter(p => p.char_selected == false).length != 0){
             socket.emit('waiting other select character');
         }else{
-            io.in(data.code).emit('ready to start');
-            setTimeout(()=>{next_turn(data.code);},5000);
+            console.log(room.positions);
+            request.post(
+                apiURL+'storeGameData',
+                { json: { room: room , turn_count: turn_count[data.code]} },
+                function (error, response,body) {
+                    if (!error && response.statusCode == 200) {
+                        io.in(data.code).emit('ready to start');
+                        setTimeout(()=>{next_turn(data.code);},5000);
+                    }
+                }
+            );
+
         }
     });
-
     socket.on('scts',(data) => {
         socket.to(data.code).emit('sctc',{username: users.find(u => u.id == socket.id).username, message: data.message});
     });

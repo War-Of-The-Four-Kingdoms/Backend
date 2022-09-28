@@ -9,6 +9,15 @@ class Player extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'game',
+        'user',
+        'character',
+        'role',
+        'remain_hp',
+        'is_playing'
+    ];
+
     public function cards(){
         return $this->belongsToMany(Card::class,'owned');
     }
