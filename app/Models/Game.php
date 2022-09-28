@@ -16,4 +16,7 @@ class Game extends Model
         'is_end'
     ];
 
+    public function cards(){
+        return $this->belongsToMany(Card::class,'carddeck');
+    }
 }

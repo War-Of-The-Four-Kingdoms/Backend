@@ -52,5 +52,6 @@ Route::group(['middleware' => 'auth:api'], function(){
 });
 Route::get('getRole', [GameController::class, 'getRoleList']);
 Route::get('getCharacter', [GameController::class, 'getCharacterList']);
-Route::get('test', [AuthenController::class, 'test']);
+Route::post('storeGameData', [GameController::class, 'storeGameData']);
 // Route::get('getRole',)
+Route::get('drawCard', [GameController::class, 'drawCard']);

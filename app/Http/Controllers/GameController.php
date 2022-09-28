@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Card;
+use App\Models\Carddeck;
 use App\Models\Character;
 use App\Models\Game;
 use App\Models\Player;
@@ -36,6 +38,15 @@ class GameController extends Controller
         return response()->json(['leader' => $leader_chars, 'normal' => $normal_chars]);
     }
 
+    public function drawCard(Request $request){
+        $d_cards = Carddeck::where('game',Game::where('roomcode','ABC123')->first()->id)->where('in_use',false)->inRandomOrder()->limit(4)->get();
+        foreach($d_cards as $d_card){
+            $d_card->in_use = true;
+            $d_card->save();
+        }
+        return $d_cards;
+    }
+
     public function storeGameData(Request $request){
         $game = Game::create([
             'roomcode' => $request->room->code,
@@ -43,11 +54,10 @@ class GameController extends Controller
             'turn' => $request->turn_count,
             'is_end' => false
         ]);
-
         foreach($request->room->positions as $pl){
             Player::create([
                 'game' => $game->id,
-                'user' => User::where('uuid',$pl->uuid),
+                'user' => User::where('uuid',$pl->uuid)->first()->id,
                 'character' => $pl->character,
                 'role' => $pl->role,
                 'remain_hp' => $pl->remain_hp,
@@ -55,5 +65,24 @@ class GameController extends Controller
             ]);
         }
 
+        $cards = Card::all();
+        $symbols = array('club','diamond','heart','spade');
+        $codes = array('2','3','4','5','6','7','8','9','10','J','Q','K','A');
+        foreach($cards as $card){
+            for($i=0;$i<$card->count;$i++){
+                $sym = $symbols[array_rand($symbols,1)];
+                $carddeck = Carddeck::create([
+                    'card' => $card->id,
+                    'game' => $game->id,
+                    'in_use' => false,
+                    'symbol' => $sym,
+                    'code' => $codes[array_rand($codes,1)],
+                ]);
+                $carddeck->save();
+            }
+        }
+
+
     }
+
 }

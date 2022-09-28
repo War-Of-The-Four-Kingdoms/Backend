@@ -25,4 +25,8 @@ class Card extends Model
     public function players(){
         return $this->belongsToMany(Player::class,'owned');
     }
+
+    public function games(){
+        return $this->belongsToMany(Game::class,'carddeck');
+    }
 }
