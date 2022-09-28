@@ -39,7 +39,7 @@ class GameController extends Controller
     }
 
     public function drawCard(Request $request){
-        $d_cards = Carddeck::where('game',Game::where('roomcode','ABC123')->first()->id)->where('in_use',false)->inRandomOrder()->limit(4)->get();
+        $d_cards = Carddeck::where('game',Game::where('roomcode',$request->roomcode)->first()->id)->where('in_use',false)->inRandomOrder()->limit(4)->get();
         foreach($d_cards as $d_card){
             $d_card->in_use = true;
             $d_card->save();
