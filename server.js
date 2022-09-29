@@ -121,7 +121,9 @@ io.on('connection', (socket) => {
     socket.on('character selected', async (data) => {
         let room = rooms.find(r => r.code == data.code);
         let me = room.positions.find(p => p.uid == socket.id);
-        me.character = me.pools.find(pool => pool.id = data.cid);
+        me.character = me.pools.find(pool => pool.id == data.cid);
+        console.log(me.pools);
+        console.log(me.character);
         me.char_selected = true;
         me.remain_hp = me.character.hp + me.extra_hp;
         me.uuid = users.find(u => u.id == me.uid).uuid;
