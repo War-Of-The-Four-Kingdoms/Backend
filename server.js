@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 const e = require('express');
 const { indexOf } = require('lodash');
 const app = express();
-var request = require('request');
+const axios = require('axios');
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
     cors: { origin: "*" }
@@ -62,15 +62,18 @@ io.on('connection', (socket) => {
             socket.to(data.code).emit('skip');
         }
     })
-    socket.on('start game', (data) => {
-        let nChar = data.characters.normal;
-        let lChar = data.characters.leader;
+    socket.on('start game', async (data) => {
+        const res_char = await axios.get(apiURL+'getCharacter');
+        let nChar = res_char.normal;
+        let lChar = res_char.leader;
         let room = rooms.find(r => r.code == data.code);
         // if(room.positions.filter(p => p.position != 0).length < 4){
         //     socket.emit('need more player');
         // }else{
             let room_pos = room.positions;
-            let roles = data.roles;
+            const res_role = await axios.get(apiURL+'getRole',{ params: { player_num: room_pos.length } });
+            let roles = res_role.data.roles;
+            console.log(roles);
             let shufflerole = roles.slice(0,room_pos.length).sort((a, b) => 0.5 - Math.random());
             pos[data.code] = [];
             room_pos.forEach((value, i) => {
@@ -115,7 +118,7 @@ io.on('connection', (socket) => {
         // }
     });
 
-    socket.on('character selected',(data) => {
+    socket.on('character selected', async (data) => {
         let room = rooms.find(r => r.code == data.code);
         let me = room.positions.find(p => p.uid == socket.id);
         me.character = me.pools.find(pool => pool.id = data.cid);
@@ -128,17 +131,9 @@ io.on('connection', (socket) => {
             socket.emit('waiting other select character');
         }else{
             console.log(room.positions);
-            request.post(
-                apiURL+'storeGameData',
-                { json: { room: room , turn_count: turn_count[data.code]} },
-                function (error, response,body) {
-                    if (!error && response.statusCode == 200) {
-                        io.in(data.code).emit('ready to start');
-                        setTimeout(()=>{next_turn(data.code);},5000);
-                    }
-                }
-            );
-
+            await request.post(apiURL+'storeGameData',{ room: room , turn_count: turn_count[data.code]});
+            io.in(data.code).emit('ready to start');
+            setTimeout(()=>{next_turn(data.code);},5000);
         }
     });
     socket.on('scts',(data) => {
