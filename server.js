@@ -17,34 +17,75 @@ var next_turn_position = [];
 var timeout = [];
 var pos = [];
 var turn = [];
+var stage = [];
+var stage_list = ['prepare','decide','draw','play','drop','end'];
 var turn_count = [];
 const apiURL = process.env.API_URL;
-const MAX_WAITING = 7000;
+const MAX_WAITING = 32000;
 
-// function next_turn(code){
-//     if(typeof pos[code] == 'undefined'){
-//         pos[code] = 0;
-//     }
-//     if(typeof current_turn_position[code] == 'undefined'){
-//         current_turn_position[code] = 0;
-//     }
-//    pos[code] = current_turn_position[code]++ % rooms.find(r => r.code == code).positions.length;
-//    return rooms.find(r => r.code == code).positions.find(p => p.position == pos[code]).uid;
 
-// }
 function next_turn(code){
-//    let sid = rooms.find(r => r.code == code).positions.find(p => p.position == current_turn_position[code]).uid;
-//    socket.to(code).emit('other turn',{username: users.find(u => u.room == code && u.position == pos[code]).username});
     current_turn_position[code] = next_turn_position[code];
     io.in(code).emit('next turn',current_turn_position[code]);
     turn_count[code]++;
     turn[code] = ((turn[code]+1) % pos[code].length);
     next_turn_position[code] = pos[code][turn[code]];
-   triggerTimeout(code);
+    stage[code] = 'prepare';
+    next_stage(code);
 }
 
-function triggerTimeout(code){
-    timeout[code] = setTimeout(()=>{next_turn(code);},MAX_WAITING);
+function next_stage(code){
+    switch (stage[code]) {
+        case 'prepare':
+
+            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            triggerTimeout(code,false);
+            stage[code] = 'decide';
+            break;
+
+        case 'decide':
+
+            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            triggerTimeout(code,false);
+            stage[code] = 'draw';
+            break;
+
+        case 'draw':
+
+            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            triggerTimeout(code,false);
+            stage[code] = 'play';
+            break;
+
+        case 'play':
+
+            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            triggerTimeout(code,false);
+            stage[code] = 'drop';
+            break;
+
+        case 'drop':
+
+            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            triggerTimeout(code,false);
+            stage[code] = 'end';
+            break;
+
+        case 'end':
+
+            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            triggerTimeout(code,true);
+            stage[code] = 'prepare';
+            break;
+    }
+    }
+
+function triggerTimeout(code,is_next_turn){
+    if(is_next_turn){
+        timeout[code] = setTimeout(()=>{next_turn(code);},MAX_WAITING);
+    }else{
+        timeout[code] = setTimeout(()=>{next_stage(code);},MAX_WAITING);
+    }
 }
 
 function resetTimeout(code){
@@ -59,6 +100,13 @@ io.on('connection', (socket) => {
         if(rooms.find(r => r.code == data.code ).positions.find(p => p.uid == socket.id).position == current_turn_position[data.code]){
             resetTimeout(data.code);
             next_turn(data.code);
+            socket.to(data.code).emit('skip');
+        }
+    })
+    socket.on('end stage',(data) => {
+        if(rooms.find(r => r.code == data.code ).positions.find(p => p.uid == socket.id).position == current_turn_position[data.code]){
+            resetTimeout(data.code);
+            next_stage(data.code);
             socket.to(data.code).emit('skip');
         }
     })
@@ -274,8 +322,14 @@ io.on('connection', (socket) => {
         }else{
             socket.emit('user checked',{is_created: false});
         }
-
     });
+
+    socket.on('draw card', (data) => {
+        let room = rooms.find(r => r.code == data.code);
+        let me = room.positions.find(p => p.uid == socket.id);
+        me.in_hand = data.hand;
+    });
+
     socket.on('join lobby', (data) => {
         if(users.find(u => u.id == socket.id)){
             let room = rooms.find(r => r.code == data.code);
@@ -317,6 +371,7 @@ io.on('connection', (socket) => {
         users.find(u => u.id == socket.id ).position = data.position;
         io.to(data.code).emit('assign position',rooms.find(r => r.code == data.code).positions);
     });
+
 
     // socket.on('check room exists', (code,callback) => {
     //     if(rooms.includes(rooms.find(r => r.code == code))){
