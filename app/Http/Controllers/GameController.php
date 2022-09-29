@@ -44,6 +44,7 @@ class GameController extends Controller
         foreach($d_cards as $d_card){
             $d_card->in_use = true;
             $d_card->save();
+            $d_card->info = Card::where('id',$d_card->card)->first();
         }
         return $d_cards;
     }

@@ -11,8 +11,6 @@ class Card extends Model
 
     protected $fillable = [
         'name',
-        'code',
-        'symbol',
         'type',
         'decision',
         'distance',
