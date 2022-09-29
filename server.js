@@ -64,8 +64,8 @@ io.on('connection', (socket) => {
     })
     socket.on('start game', async (data) => {
         const res_char = await axios.get(apiURL+'getCharacter');
-        let nChar = res_char.normal;
-        let lChar = res_char.leader;
+        let nChar = res_char.data.normal;
+        let lChar = res_char.data.leader;
         let room = rooms.find(r => r.code == data.code);
         // if(room.positions.filter(p => p.position != 0).length < 4){
         //     socket.emit('need more player');
@@ -131,7 +131,7 @@ io.on('connection', (socket) => {
             socket.emit('waiting other select character');
         }else{
             console.log(room.positions);
-            await request.post(apiURL+'storeGameData',{ room: room , turn_count: turn_count[data.code]});
+            await axios.post(apiURL+'storeGameData',{ room: room , turn_count: turn_count[data.code]});
             io.in(data.code).emit('ready to start');
             setTimeout(()=>{next_turn(data.code);},5000);
         }
