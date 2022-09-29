@@ -37,42 +37,36 @@ function next_turn(code){
 function next_stage(code){
     switch (stage[code]) {
         case 'prepare':
-
             io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'decide';
             break;
 
         case 'decide':
-
             io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'draw';
             break;
 
         case 'draw':
-
             io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'play';
             break;
 
         case 'play':
-
             io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'drop';
             break;
 
         case 'drop':
-
             io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'end';
             break;
 
         case 'end':
-
             io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,true);
             stage[code] = 'prepare';
@@ -187,7 +181,8 @@ io.on('connection', (socket) => {
         }
     });
     socket.on('scts',(data) => {
-        socket.to(data.code).emit('sctc',{username: users.find(u => u.id == socket.id).username, message: data.message});
+        let me = users.find(u => u.id == socket.id);
+        socket.to(data.code).emit('sctc',{username: me.username, message: data.message, position: me.position});
     });
     socket.on('disconnect', () => {
         if(users.find(u => u.id == socket.id)){
