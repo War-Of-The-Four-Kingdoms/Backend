@@ -17,6 +17,7 @@ var next_turn_position = [];
 var timeout = [];
 var pos = [];
 var turn = [];
+var is_next_turn = false;
 var stage = [];
 // var stage_list = ['prepare','decide','draw','play','drop','end'];
 var turn_count = [];
@@ -38,44 +39,46 @@ function next_stage(code){
     switch (stage[code]) {
         case 'prepare':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,false);
+            is_next_turn = false;
+            triggerTimeout(code,is_next_turn);
             stage[code] = 'decide';
             break;
 
         case 'decide':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,false);
+            triggerTimeout(code,is_next_turn);
             stage[code] = 'draw';
             break;
 
         case 'draw':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,false);
+            triggerTimeout(code,is_next_turn);
             stage[code] = 'play';
             break;
 
         case 'play':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,false);
+            triggerTimeout(code,is_next_turn);
             stage[code] = 'drop';
             break;
 
         case 'drop':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,false);
+            triggerTimeout(code,is_next_turn);
             stage[code] = 'end';
             break;
 
         case 'end':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,true);
+            is_next_turn = true;
+            triggerTimeout(code,is_next_turn);
             stage[code] = 'prepare';
             break;
     }
     }
 
-function triggerTimeout(code,is_next_turn){
-    if(is_next_turn){
+function triggerTimeout(code,next){
+    if(next){
         timeout[code] = setTimeout(()=>{next_turn(code);},MAX_WAITING);
     }else{
         timeout[code] = setTimeout(()=>{next_stage(code);},MAX_WAITING);
@@ -90,18 +93,24 @@ function resetTimeout(code){
 
 io.on('connection', (socket) => {
     // users.push(socket);
-    socket.on('pass turn',(data) => {
-        if(rooms.find(r => r.code == data.code ).positions.find(p => p.uid == socket.id).position == current_turn_position[data.code]){
-            resetTimeout(data.code);
-            next_turn(data.code);
-            socket.to(data.code).emit('skip');
-        }
-    })
+    // socket.on('pass turn',(data) => {
+    //     if(rooms.find(r => r.code == data.code ).positions.find(p => p.uid == socket.id).position == current_turn_position[data.code]){
+    //         resetTimeout(data.code);
+    //         next_turn(data.code);
+    //         socket.to(data.code).emit('skip');
+    //     }
+    // })
     socket.on('end stage',(data) => {
         if(rooms.find(r => r.code == data.code ).positions.find(p => p.uid == socket.id).position == current_turn_position[data.code]){
-            resetTimeout(data.code);
-            next_stage(data.code);
-            socket.to(data.code).emit('skip');
+            if(is_next_turn){
+                resetTimeout(data.code);
+                next_turn(data.code);
+                socket.to(data.code).emit('skip');
+            }else{
+                resetTimeout(data.code);
+                next_stage(data.code);
+                socket.to(data.code).emit('skip');
+            }
         }
     })
     socket.on('start game', async (data) => {
