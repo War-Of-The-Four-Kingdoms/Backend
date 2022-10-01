@@ -200,7 +200,7 @@ io.on('connection', async (socket) => {
                 if(room.is_started){
                     if(room.positions.filter(p => p.leaved == false).length == 1){
                         resetTimeout(room.code);
-                        rooms.pop(room);
+                        rooms = rooms.filter(r => r.code != room.code);
                     }
                     let player = room.positions.find(p => p.uid == socket.id);
                     player.leaved = true;
@@ -230,7 +230,7 @@ io.on('connection', async (socket) => {
                         }
                         io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
                     }else{
-                        rooms.pop(room);
+                        rooms = rooms.filter(r => r.code != room.code);
                     }
                 }
             }
@@ -250,7 +250,7 @@ io.on('connection', async (socket) => {
                     if(room.is_started){
                         if(room.positions.filter(p => p.leaved == false).length == 1){
                             resetTimeout(room.code);
-                            rooms.pop(room);
+                            rooms = rooms.filter(r => r.code != room.code);
                         }
                         let player = room.positions.find(p => p.uid == socket.id);
                         player.leaved = true;
@@ -279,7 +279,7 @@ io.on('connection', async (socket) => {
                             }
                             io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
                         }else{
-                            rooms.pop(room);
+                            rooms = rooms.filter(r => r.code != room.code);
                         }
                     }
                     user.room = '';
@@ -336,17 +336,21 @@ io.on('connection', async (socket) => {
 
     await socket.on('join lobby', (data) => {
         if(users.find(u => u.id == socket.id)){
-            let room = rooms.find(r => r.code == data.code);
-            if(room.positions.length == room.max){
-                socket.emit('room full');
-            }else{
-                socket.join(data.code);
-                room.positions.push({uid: socket.id, position: 0, leaved: false});
-                users.find(u => u.id == socket.id ).room = data.code;
-                socket.emit('user checked',{is_created: true, code: data.code});
-                socket.emit('assign position',room.positions);
+            if(rooms.some(r => r.code == data.code)){
+                let room = rooms.find(r => r.code == data.code);
+                if(room.positions.length == room.max){
+                    socket.emit('room full');
+                }else{
+                    socket.join(data.code);
+                    room.positions.push({uid: socket.id, position: 0, leaved: false});
+                    users.find(u => u.id == socket.id ).room = data.code;
+                    socket.emit('user checked',{is_created: true, code: data.code});
+                    socket.emit('assign position',room.positions);
+                }
             }
-
+            else{
+                socket.emit('no room',{code: data.code});
+            }
         }else{
             socket.emit('user checked',{is_created: false});
         }
@@ -354,7 +358,6 @@ io.on('connection', async (socket) => {
     await socket.on('leave lobby', (data) => {
         socket.leave(data.code);
         let room = rooms.find(r => r.code == data.code);
-        // room.players.pop(socket);
         room.positions = room.positions.filter(p => p.uid != socket.id);
         if(room.positions.length != 0){
             if(room.host == socket.id){
@@ -363,7 +366,7 @@ io.on('connection', async (socket) => {
             }
             io.to(room.code).emit('assign position',rooms.find(r => r.code == room.code).positions);
         }else{
-            rooms.pop(room);
+            rooms = rooms.filter(r => r.code != room.code);
         }
         users.find(u => u.id == socket.id ).room = '';
         users.find(u => u.id == socket.id ).position = 0;
