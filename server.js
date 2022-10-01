@@ -18,7 +18,7 @@ var timeout = [];
 var pos = [];
 var turn = [];
 var stage = [];
-var stage_list = ['prepare','decide','draw','play','drop','end'];
+// var stage_list = ['prepare','decide','draw','play','drop','end'];
 var turn_count = [];
 const apiURL = process.env.API_URL;
 const MAX_WAITING = 32000;
@@ -37,37 +37,37 @@ function next_turn(code){
 function next_stage(code){
     switch (stage[code]) {
         case 'prepare':
-            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'decide';
             break;
 
         case 'decide':
-            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'draw';
             break;
 
         case 'draw':
-            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'play';
             break;
 
         case 'play':
-            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'drop';
             break;
 
         case 'drop':
-            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,false);
             stage[code] = 'end';
             break;
 
         case 'end':
-            io.in(code).emit('change stage',{ player: current_turn_position[code] , stage: stage[code]});
+            io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
             triggerTimeout(code,true);
             stage[code] = 'prepare';
             break;
@@ -231,7 +231,7 @@ io.on('connection', (socket) => {
     //    users.splice(users.indexOf(socket),1);
     //    pos>0?pos--:pos=0;
     });
-    socket.on('start', (data) => {
+    socket.on('start', async (data) => {
         let user = users.find(u => u.uuid == data.uuid);
         if(user != null){
             if(user.id == socket.id){
