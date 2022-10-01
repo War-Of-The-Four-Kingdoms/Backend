@@ -91,7 +91,7 @@ function resetTimeout(code){
    }
 }
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     // users.push(socket);
     // socket.on('pass turn',(data) => {
     //     if(rooms.find(r => r.code == data.code ).positions.find(p => p.uid == socket.id).position == current_turn_position[data.code]){
@@ -100,7 +100,7 @@ io.on('connection', (socket) => {
     //         socket.to(data.code).emit('skip');
     //     }
     // })
-    socket.on('end stage',(data) => {
+    await socket.on('end stage',(data) => {
         if(rooms.find(r => r.code == data.code ).positions.find(p => p.uid == socket.id).position == current_turn_position[data.code]){
             if(is_next_turn){
                 resetTimeout(data.code);
@@ -113,7 +113,7 @@ io.on('connection', (socket) => {
             }
         }
     })
-    socket.on('start game', async (data) => {
+    await socket.on('start game', async (data) => {
         const res_char = await axios.get(apiURL+'getCharacter');
         let nChar = res_char.data.normal;
         let lChar = res_char.data.leader;
@@ -169,7 +169,7 @@ io.on('connection', (socket) => {
         // }
     });
 
-    socket.on('character selected', async (data) => {
+    await socket.on('character selected', async (data) => {
         let room = rooms.find(r => r.code == data.code);
         let me = room.positions.find(p => p.uid == socket.id);
         me.character = me.pools.find(pool => pool.id == data.cid);
@@ -179,7 +179,7 @@ io.on('connection', (socket) => {
         me.remain_hp = me.character.hp + me.extra_hp;
         me.uuid = users.find(u => u.id == me.uid).uuid;
         delete me.pools;
-        io.in(data.code).emit('set player character',{position: me.position, character: me.character.image_name});
+        io.in(data.code).emit('set player character',{position: me.position, character: me.character.image_name, remain_hp: me.remain_hp});
         if(room.positions.filter(p => p.char_selected == false).length != 0){
             socket.emit('waiting other select character');
         }else{
@@ -189,11 +189,11 @@ io.on('connection', (socket) => {
             setTimeout(()=>{next_turn(data.code);},5000);
         }
     });
-    socket.on('scts',(data) => {
+    await socket.on('scts',(data) => {
         let me = users.find(u => u.id == socket.id);
         socket.to(data.code).emit('sctc',{username: me.username, message: data.message, position: me.position});
     });
-    socket.on('disconnect', () => {
+    await socket.on('disconnect', () => {
         if(users.find(u => u.id == socket.id)){
             if(users.find(u => u.id == socket.id).room != ''){
                 let room = rooms.find(r => r.positions.find(p => p.uid == socket.id));
@@ -240,7 +240,7 @@ io.on('connection', (socket) => {
     //    users.splice(users.indexOf(socket),1);
     //    pos>0?pos--:pos=0;
     });
-    socket.on('start', async (data) => {
+    await socket.on('start', async (data) => {
         let user = users.find(u => u.uuid == data.uuid);
         if(user != null){
             if(user.id == socket.id){
@@ -305,7 +305,7 @@ io.on('connection', (socket) => {
 
 
     });
-    socket.on('create lobby', (data) => {
+    await socket.on('create lobby', (data) => {
         let user = users.find(u => u.id == socket.id);
         if(users.find(u => u.id == socket.id)){
             socket.join(data.code);
@@ -328,13 +328,13 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('draw card', (data) => {
+    await socket.on('draw card', (data) => {
         let room = rooms.find(r => r.code == data.code);
         let me = room.positions.find(p => p.uid == socket.id);
         me.in_hand = data.hand;
     });
 
-    socket.on('join lobby', (data) => {
+    await socket.on('join lobby', (data) => {
         if(users.find(u => u.id == socket.id)){
             let room = rooms.find(r => r.code == data.code);
             if(room.positions.length == room.max){
@@ -351,7 +351,7 @@ io.on('connection', (socket) => {
             socket.emit('user checked',{is_created: false});
         }
     });
-    socket.on('leave lobby', (data) => {
+    await socket.on('leave lobby', (data) => {
         socket.leave(data.code);
         let room = rooms.find(r => r.code == data.code);
         // room.players.pop(socket);
@@ -370,7 +370,7 @@ io.on('connection', (socket) => {
     });
 
     //add front
-    socket.on('select position', (data) => {
+    await socket.on('select position', (data) => {
         rooms.find(r => r.code == data.code).positions.find(p => p.uid == socket.id).position=data.position;
         users.find(u => u.id == socket.id ).position = data.position;
         io.to(data.code).emit('assign position',rooms.find(r => r.code == data.code).positions);
@@ -386,11 +386,11 @@ io.on('connection', (socket) => {
     //     }
     // });
 
-    socket.on('list room', () => {
+    await socket.on('list room', () => {
         socket.emit('set room list', rooms.filter(r => r.private == false));
     });
 
-    socket.on('get room info', (data) => {
+    await socket.on('get room info', (data) => {
         if(users.find(u => u.id == socket.id) === undefined){
             if(rooms.includes(rooms.find(r => r.code == data.code))){
                 socket.join(data.code);
