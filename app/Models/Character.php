@@ -13,6 +13,8 @@ class Character extends Model
         'name',
         'tribe',
         'hp',
-        'gender'
+        'gender',
+        'image_name',
+        'char_name'
     ];
 }

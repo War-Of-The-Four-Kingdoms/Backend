@@ -112,7 +112,26 @@ io.on('connection', async (socket) => {
                 socket.to(data.code).emit('skip');
             }
         }
-    })
+    });
+    await socket.on('trigger others effect',(data) => {
+        let room = rooms.find(r => r.code = data.code);
+        let me = room.players.find(p => p.uid = socket.id);
+        let target = room.players.find(p => p.position = data.position);
+        io.to(target.uid).emit('trigger special effect',{ target: me });
+    });
+    await socket.on('special effect end',(data) => {
+        let playing = rooms.find(r => r.code = data.code).players.find(p => p.position = current_turn_position[data.code]);
+        io.to(playing.uid).emit('next queue');
+    });
+    await socket.on('martin effect',(data) => {
+        let playing = rooms.find(r => r.code = data.code).players.find(p => p.position = current_turn_position[data.code]);
+        io.to(playing.uid).emit('draw num adjust',{ num: -1});
+    });
+    await socket.on('update inhand card',(data) => {
+        let me = rooms.find(r => r.code = data.code).players.find(p => p.uid = socket.id);
+        me.in_hand = data.hand;
+        io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
+    });
     await socket.on('start game', async (data) => {
         const res_char = await axios.get(apiURL+'getCharacter');
         let nChar = res_char.data.normal;
@@ -154,6 +173,11 @@ io.on('connection', async (socket) => {
                 else{
                     let normalChar = [];
                     for(let i=0; i<4; i++){
+                        if(nChar.find(c => c.id == 26) != null){
+                            const martin = nChar.find(c => c.id == 26);
+                            normalChar.push(martin);
+                            nChar = nChar.filter(c => c != martin);
+                        }
                         const randChar = nChar[Math.floor(Math.random() * nChar.length)];
                         normalChar.push(randChar);
                         nChar = nChar.filter(c => c != randChar);
@@ -179,7 +203,7 @@ io.on('connection', async (socket) => {
         me.remain_hp = me.character.hp + me.extra_hp;
         me.uuid = users.find(u => u.id == me.uid).uuid;
         delete me.pools;
-        io.in(data.code).emit('set player character',{position: me.position, character: me.character.image_name, remain_hp: me.remain_hp});
+        io.in(data.code).emit('set player character',{position: me.position, character: me.character, remain_hp: me.remain_hp});
         if(room.players.filter(p => p.char_selected == false).length != 0){
             socket.emit('waiting other select character');
         }else{
