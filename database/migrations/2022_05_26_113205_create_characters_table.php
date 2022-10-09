@@ -21,7 +21,7 @@ class CreateCharactersTable extends Migration
             $table->enum('gender',['male','female']);
             $table->boolean('is_leader');
             $table->string('image_name');
-            $table->string('method_name');
+            $table->string('char_name');
             $table->timestamps();
         });
     }
