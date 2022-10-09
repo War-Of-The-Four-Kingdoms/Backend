@@ -105,11 +105,9 @@ io.on('connection', async (socket) => {
             if(is_next_turn){
                 resetTimeout(data.code);
                 next_turn(data.code);
-                socket.to(data.code).emit('skip');
             }else{
                 resetTimeout(data.code);
                 next_stage(data.code);
-                socket.to(data.code).emit('skip');
             }
         }
     });
