@@ -114,21 +114,21 @@ io.on('connection', async (socket) => {
         }
     });
     await socket.on('trigger others effect',(data) => {
-        let room = rooms.find(r => r.code = data.code);
-        let me = room.players.find(p => p.uid = socket.id);
-        let target = room.players.find(p => p.position = data.position);
+        let room = rooms.find(r => r.code == data.code);
+        let me = room.players.find(p => p.uid == socket.id);
+        let target = room.players.find(p => p.position == data.position);
         io.to(target.uid).emit('trigger special effect',{ target: me });
     });
     await socket.on('special effect end',(data) => {
-        let playing = rooms.find(r => r.code = data.code).players.find(p => p.position = current_turn_position[data.code]);
+        let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
         io.to(playing.uid).emit('next queue');
     });
     await socket.on('martin effect',(data) => {
-        let playing = rooms.find(r => r.code = data.code).players.find(p => p.position = current_turn_position[data.code]);
+        let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
         io.to(playing.uid).emit('draw num adjust',{ num: -1});
     });
     await socket.on('update inhand card',(data) => {
-        let me = rooms.find(r => r.code = data.code).players.find(p => p.uid = socket.id);
+        let me = rooms.find(r => r.code == data.code).players.find(p => p.uid == socket.id);
         me.in_hand = data.hand;
         io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
     });
