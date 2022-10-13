@@ -49,6 +49,16 @@ class GameController extends Controller
         return $d_cards;
     }
 
+    public function dropCard(Request $request){
+        Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->whereIn('id',$request['cards'])->update(['in_use' => 0]);
+        return response()->json(['status' => 200]);
+    }
+
+    public function updateCardInUse(Request $request){
+        Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->whereIn('id',$request['cards'])->update(['in_use' => 1]);
+        return response()->json(['status' => 200]);
+    }
+
     public function storeGameData(Request $request){
         $game = Game::create([
             'roomcode' => $request->room['code'],
