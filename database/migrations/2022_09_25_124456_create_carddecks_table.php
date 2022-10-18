@@ -20,8 +20,7 @@ class CreateCarddecksTable extends Migration
             $table->unsignedBigInteger('card');
             $table->foreign('card')->references('id')->on('cards');
             $table->boolean('in_use');
-            $table->string('code');
-            $table->enum('symbol',['club','diamond','heart','spade']);
+            $table->integer('order');
             $table->timestamps();
         });
     }

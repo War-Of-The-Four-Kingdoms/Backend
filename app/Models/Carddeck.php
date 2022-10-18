@@ -12,8 +12,7 @@ class Carddeck extends Model
     protected $fillable = [
         'in_use',
         'game',
-        'symbol',
-        'code',
+        'order',
         'card'
     ];
 

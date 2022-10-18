@@ -16,6 +16,8 @@ class CreateCardsTable extends Migration
         Schema::create('cards', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('code');
+            $table->enum('symbol',['club','diamond','heart','spade']);
             $table->enum('type',['trick','equipment','active']);
             $table->boolean('decision');
             $table->integer('distance');
@@ -23,7 +25,6 @@ class CreateCardsTable extends Migration
             $table->boolean('immediately');
             $table->enum('equipment_type',['weapon','armor','mount'])->nullable();
             $table->enum('active_type',['atk','def','heal'])->nullable();
-            $table->integer('count');
             $table->string('item_name')->nullable();
             $table->timestamps();
         });

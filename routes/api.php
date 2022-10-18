@@ -56,4 +56,5 @@ Route::post('storeGameData', [GameController::class, 'storeGameData']);
 // Route::get('getRole',)
 Route::get('drawCard', [GameController::class, 'drawCard']);
 Route::put('dropCard', [GameController::class, 'dropCard']);
+Route::get('openCard', [GameController::class, 'openCard']);
 Route::put('updateCardInUse', [GameController::class, 'updateCardInUse']);

@@ -14,6 +14,7 @@ var users = [];
 var rooms = [];
 var current_turn_position = [];
 var next_turn_position = [];
+var carddeck = [];
 var timeout = [];
 var pos = [];
 var turn = [];
@@ -22,7 +23,7 @@ var stage = [];
 // var stage_list = ['prepare','decide','draw','play','drop','end'];
 var turn_count = [];
 const apiURL = process.env.API_URL;
-const MAX_WAITING = 32000;
+const MAX_WAITING = 35000;
 
 function next_turn(code){
     current_turn_position[code] = next_turn_position[code];
@@ -39,38 +40,38 @@ function next_stage(code){
         case 'prepare':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
             is_next_turn = false;
-            triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn);
             stage[code] = 'decide';
             break;
 
         case 'decide':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn);
             stage[code] = 'draw';
             break;
 
         case 'draw':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn);
             stage[code] = 'play';
             break;
 
         case 'play':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn);
             stage[code] = 'drop';
             break;
 
         case 'drop':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn);
             stage[code] = 'end';
             break;
 
         case 'end':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
             is_next_turn = true;
-            triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn);
             stage[code] = 'prepare';
             break;
     }
@@ -124,6 +125,10 @@ io.on('connection', async (socket) => {
         let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
         io.to(playing.uid).emit('draw num adjust',{ num: -1});
     });
+    await socket.on('merguin effect',(data) => {
+        let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
+        io.to(playing.uid).emit('set decision result',{ card: data.card});
+    });
     await socket.on('update inhand card',(data) => {
         let me = rooms.find(r => r.code == data.code).players.find(p => p.uid == socket.id);
         me.in_hand = data.hand;
@@ -170,8 +175,8 @@ io.on('connection', async (socket) => {
                 else{
                     let normalChar = [];
                     for(let i=0; i<4; i++){
-                        if(nChar.find(c => c.id == 16) != null){
-                            const foxia = nChar.find(c => c.id == 16);
+                        if(nChar.find(c => c.id == 21) != null){
+                            const foxia = nChar.find(c => c.id == 21);
                             normalChar.push(foxia);
                             nChar = nChar.filter(c => c != foxia);
                         }
@@ -205,7 +210,8 @@ io.on('connection', async (socket) => {
             socket.emit('waiting other select character');
         }else{
             console.log(room.players);
-            await axios.post(apiURL+'storeGameData',{ room: room , turn_count: turn_count[data.code]});
+            let carddeck = await axios.post(apiURL+'storeGameData',{ room: room , turn_count: turn_count[data.code]});
+            carddeck[data.code] = carddeck;
             io.in(data.code).emit('ready to start');
             setTimeout(()=>{next_turn(data.code);},5000);
         }
