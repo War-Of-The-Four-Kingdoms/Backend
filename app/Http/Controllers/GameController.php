@@ -45,13 +45,17 @@ class GameController extends Controller
     }
 
     public function setNewOrder(Request $request){
-        //neworder: [0 => 155,1 => 125,2 => 140] , drop: [177,156] , card_num: 5 , room_code: 'asfasf'
+        //neworder: [155,125,140] , drop: [177,156] , card_num: 5 , room_code: 'asfasf'
         $first10c = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit(10)->get();
-        foreach($request->neworder as $noindex=>$card_id) {
-            Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('id',$card_id)->update(['order' => $noindex+1]);
+        if($request->neworder->length != 0){
+            foreach($request->neworder as $noindex=>$card_id) {
+                Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('id',$card_id)->update(['order' => $noindex+1]);
+            }
         }
-        foreach($request->drop as $dcard_id) {
-            Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('id',$dcard_id)->update(['order' => 99]);
+        if($request->neworder->length != 0){
+            foreach($request->drop as $dcard_id) {
+                Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('id',$dcard_id)->update(['order' => 99]);
+            }
         }
         $newcards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->where('order', 99)->inRandomOrder()->limit($request->drop->length)->get();
         foreach ($first10c as $findex=>$fcard) {
