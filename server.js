@@ -172,7 +172,6 @@ io.on('connection', async (socket) => {
                 pos[data.code].push(value.position) ;
             });
             pos[data.code].sort((a, b) => a - b);
-            console.log(pos);
             room.players.forEach(p => {
                 const king = players.find(rp => rp.role == 'king');
                 const me = players.find(rp => rp.sid == p.sid);
@@ -208,7 +207,6 @@ io.on('connection', async (socket) => {
             });
             setTimeout(()=>{
                 room.players.forEach(p => {
-                    console.log(p.sid);
                     io.to(p.sid).emit('random characters',p.pools);
                 });
             },5000);
@@ -216,6 +214,7 @@ io.on('connection', async (socket) => {
     });
 
     await socket.on('character selected', async (data) => {
+        console.log('character selected');
         let room = rooms.find(r => r.code == data.code);
         let me = room.players.find(p => p.sid == socket.id);
         me.character = me.pools.find(pool => pool.id == data.cid);
@@ -236,10 +235,7 @@ io.on('connection', async (socket) => {
     await socket.on('give card to others',(data)=> {
         let room = rooms.find(r => r.code == data.code);
         let me = room.players.find(p => p.sid == socket.id);
-        console.log(data.target);
         let target = room.players.find(p => p.uuid == data.target);
-        console.log(room.players);
-        console.log(target);
         let cards = [];
         data.cards.forEach(card => {
             let mycard = me.in_hand.find(h => h.id == card);
@@ -263,29 +259,30 @@ io.on('connection', async (socket) => {
                     if(room.players.filter(p => p.leaved == false).length == 1){
                         resetTimeout(room.code);
                         rooms = rooms.filter(r => r.code != room.code);
-                    }
-                    let player = room.players.find(p => p.sid == socket.id);
-                    player.leaved = true;
+                    }else{
+                        let player = room.players.find(p => p.sid == socket.id);
+                        player.leaved = true;
 
-                    io.to(room.code).emit('player leave',player);
-                    if(room.host == socket.id){
-                        if(room.host == room.players[0].sid){
-                            room.host = room.players[1].sid;
-                        }else{
-                            room.host = room.players[0].sid;
+                        io.to(room.code).emit('player leave',player);
+                        if(room.host == socket.id){
+                            if(room.host == room.players[0].sid){
+                                room.host = room.players[1].sid;
+                            }else{
+                                room.host = room.players[0].sid;
+                            }
+                            io.to(room.code).emit('change host',{host: room.host, players: room.players});
                         }
-                        io.to(room.code).emit('change host',{host: room.host, players: room.players});
-                    }
-                    pos[room.code] = pos[room.code].filter(p => p != player.position);
-                    if(turn[room.code] == pos[room.code].length){
-                        turn[room.code] = 0;
-                    }
-                    if(next_turn_position[room.code] == player.position){
-                        next_turn_position[room.code] = pos[room.code][turn[room.code]]
-                    }
-                    if(current_turn_position[room.code] == player.position){
-                        resetTimeout(room.code);
-                        next_turn(room.code);
+                        pos[room.code] = pos[room.code].filter(p => p != player.position);
+                        if(turn[room.code] == pos[room.code].length){
+                            turn[room.code] = 0;
+                        }
+                        if(next_turn_position[room.code] == player.position){
+                            next_turn_position[room.code] = pos[room.code][turn[room.code]]
+                        }
+                        if(current_turn_position[room.code] == player.position){
+                            resetTimeout(room.code);
+                            next_turn(room.code);
+                        }
                     }
                 }else{
                     room.players = room.players.filter(p => p.sid != socket.id);
@@ -402,9 +399,11 @@ io.on('connection', async (socket) => {
     });
 
     await socket.on('draw card', (data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let me = room.players.find(p => p.sid == socket.id);
-        me.in_hand = data.hand;
+        if(rooms.find(r => r.code = data.code)){
+            let room = rooms.find(r => r.code == data.code);
+            let me = room.players.find(p => p.sid == socket.id);
+            me.in_hand = data.hand;
+        }
     });
 
     await socket.on('join lobby', (data) => {
