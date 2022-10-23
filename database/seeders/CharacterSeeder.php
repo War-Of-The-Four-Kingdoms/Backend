@@ -19,7 +19,7 @@ class CharacterSeeder extends Seeder
             ['name' => 'เวตาล', 'tribe' => 'demon', 'hp' => 3,'gender' => 'male','is_leader' => false,'image_name' => 'vetala.png','char_name'=>'vetala'],
             ['name' => 'ปีศาจผีเสี่ยงโชค', 'tribe' => 'demon', 'hp' => 4,'gender' => 'female','is_leader' => false,'image_name' => 'luckyghost.png','char_name'=>'luckyghost'],
             ['name' => 'นินจากัปปะ', 'tribe' => 'demon', 'hp' => 4,'gender' => 'male','is_leader' => false,'image_name' => 'ninjakappa.png','char_name'=>'ninjakappa'],
-            ['name' => 'แม่มดนอกรีต', 'tribe' => 'demon', 'hp' => 3,'gender' => 'female','is_leader' => false,'image_name' => 'bearfigwitchhter.png','char_name'=>'witch'],
+            ['name' => 'แม่มดนอกรีต', 'tribe' => 'demon', 'hp' => 3,'gender' => 'female','is_leader' => false,'image_name' => 'witch.png','char_name'=>'witch'],
             ['name' => 'ลูซิเฟอร์', 'tribe' => 'demon', 'hp' => 4,'gender' => 'male','is_leader' => false,'image_name' => 'lucifer.png','char_name'=>'lucifer'],
             ['name' => 'ผีอัศวินสีชาด', 'tribe' => 'demon', 'hp' => 4,'gender' => 'male','is_leader' => false,'image_name' => 'bloodyknight.png','char_name'=>'bloodyknight'],
             ['name' => 'ราชาปีศาจภูตะ', 'tribe' => 'demon', 'hp' => 4,'gender' => 'male','is_leader' => true,'image_name' => 'puta.png','char_name'=>'puta'],

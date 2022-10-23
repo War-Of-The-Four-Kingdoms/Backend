@@ -160,7 +160,46 @@ io.on('connection', async (socket) => {
             }
         }
         io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
-        socket.to(data.code).emit('change equipment image',{ position: me.position, image: card.image, type: type});
+        socket.to(data.code).emit('change equipment image',{ position: me.position, card: card, type: type});
+    });
+    await socket.on('use defense',(data) => {
+        let room = rooms.find(r => r.code == data.code);
+        let me = room.players.find(p => p.sid == socket.id);
+        let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
+        let legion = false;
+        if(data.canDef){
+            io.to(playing.sid).emit('attack fail');
+        }else{
+            if(me.character.char_name == "legioncommander"){
+                legion = true;
+            }
+            io.to(playing.sid).emit('attack success',{ legion: legion });
+            socket.emit('damaged',{damage: data.damage});
+        }
+    });
+    await socket.on('use attack', (data) => {
+        let room = rooms.find(r => r.code == data.code);
+        let me = room.players.find(p => p.sid == socket.id);
+        let target = room.players.find(p => p.position == data.target);
+        let extra_def = false;
+        let ignore_armor = false
+        if(me.character.char_name == 'roger'){
+            extra_def = true;
+        }
+        if(me.weapon != null && me.weapon.info.item_name == 'shield_breaker'){
+            ignore_armor = true;
+        }
+        io.to(target.sid).emit('attacked',{damage: data.damage,extra_def: extra_def,ignore_armor: ignore_armor});
+    });
+    await socket.on('force attack', (data) => {
+        let room = rooms.find(r => r.code == data.code);
+        let target = room.players.find(p => p.position == data.target);
+        io.to(target.sid).emit('damaged',{damage: data.damage});
+    });
+    await socket.on('update hp', (data) => {
+        let me = rooms.find(r => r.code == data.code).players.find(p => p.sid == socket.id);
+        me.remain_hp == data.hp
+        io.in(data.code).emit('update remain hp',{ position: me.position, hp: me.remain_hp});
     });
 
     await socket.on('steal other player card',(data) => {
@@ -225,8 +264,8 @@ io.on('connection', async (socket) => {
                 else{
                     let normalChar = [];
                     for(let i=0; i<4; i++){
-                        if(nChar.find(c => c.id == 19) != null){
-                            const foxia = nChar.find(c => c.id == 19);
+                        if(nChar.find(c => c.id == 16) != null){
+                            const foxia = nChar.find(c => c.id == 16);
                             normalChar.push(foxia);
                             nChar = nChar.filter(c => c != foxia);
                         }
@@ -437,6 +476,7 @@ io.on('connection', async (socket) => {
             me.in_hand = data.hand;
         }
     });
+
 
     await socket.on('join lobby', (data) => {
         if(users.find(u => u.id == socket.id)){
