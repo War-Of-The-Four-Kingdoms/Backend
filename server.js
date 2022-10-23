@@ -198,8 +198,8 @@ io.on('connection', async (socket) => {
     });
     await socket.on('update hp', (data) => {
         let me = rooms.find(r => r.code == data.code).players.find(p => p.sid == socket.id);
-        me.remain_hp == data.hp
-        io.in(data.code).emit('update remain hp',{ position: me.position, hp: me.remain_hp});
+        me.remain_hp = data.hp
+        socket.to(data.code).emit('update remain hp',{ position: me.position, hp: me.remain_hp});
     });
 
     await socket.on('steal other player card',(data) => {
