@@ -134,6 +134,34 @@ io.on('connection', async (socket) => {
         me.in_hand = data.hand;
         io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
     });
+    await socket.on('change equipment',(data) => {
+        let me = rooms.find(r => r.code == data.code).players.find(p => p.sid == socket.id);
+        me.in_hand = me.in_hand.filter(ih => ih.id != data.card.id);
+        let card = data.card.info;
+        let type = null;
+        if(card.type == 'equipment'){
+            if(card.equipment_type == 'weapon'){
+                me.weapon = data.card
+                type = 'weapon';
+            }
+            else if(card.equipment_type == 'armor'){
+                me.armor = data.card
+                type = 'armor';
+            }
+            else if(card.equipment_type == 'mount'){
+                if(card.distance == 1){
+                    me.mount1 = data.card
+                    type = 'mount1';
+                    socket.to(data.code).emit('increase enemy distance',{ position: me.position, distance: 1});
+                }else{
+                    me.mount2 = data.card
+                    type = 'mount2';
+                }
+            }
+        }
+        io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
+        socket.to(data.code).emit('change equipment image',{ position: me.position, image: card.image, type: type});
+    });
 
     await socket.on('steal other player card',(data) => {
         let room = rooms.find(r => r.code == data.code);
@@ -169,6 +197,10 @@ io.on('connection', async (socket) => {
             players.forEach((value, i) => {
                 value.role = shufflerole[i].name;
                 value.extra_hp = shufflerole[i].extra_hp;
+                value.weapon = null;
+                value.armor = null;
+                value.mount1 = null;
+                value.mount2 = null;
                 pos[data.code].push(value.position) ;
             });
             pos[data.code].sort((a, b) => a - b);

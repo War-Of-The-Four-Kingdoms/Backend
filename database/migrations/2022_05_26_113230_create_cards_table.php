@@ -26,6 +26,7 @@ class CreateCardsTable extends Migration
             $table->enum('equipment_type',['weapon','armor','mount'])->nullable();
             $table->enum('active_type',['atk','def','heal'])->nullable();
             $table->string('item_name')->nullable();
+            $table->string('image')->nullable();
             $table->timestamps();
         });
     }

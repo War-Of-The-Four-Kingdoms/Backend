@@ -17,7 +17,9 @@ class Card extends Model
         'affected_gender',
         'immediately',
         'equipment_type',
-        'active_type'
+        'active_type',
+        'item_name',
+        'image'
     ];
 
     public function players(){
