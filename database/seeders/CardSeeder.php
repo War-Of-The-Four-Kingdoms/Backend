@@ -29,7 +29,7 @@ class CardSeeder extends Seeder
             ['name' => 'ฉมวกล่าเนื้อ','code' => '2','symbol' => 'spade','type' => 'equipment','decision' => false,'distance' => 3,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'weapon','item_name' => 'hunting_harpoon', 'image' => 'hunting_harpoon.png'],
             //- Armor
             ['name' => 'เกราะโซ่อัศวิน','code' => '8','symbol' => 'club','type' => 'equipment','decision' => true,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'armor','item_name' => 'knight_chainmail', 'image' => 'knight_chainmail.png'],
-            ['name' => 'เกราะโซ่อัศวิน','code' => '13','symbol' => 'spade','type' => 'equipment','decision' => true,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'armor','item_name' => 'knight_chainmail', 'image' => 'knight_chainmail1.png'],
+            ['name' => 'เกราะโซ่อัศวิน','code' => 'K','symbol' => 'spade','type' => 'equipment','decision' => true,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'armor','item_name' => 'knight_chainmail', 'image' => 'knight_chainmail1.png'],
             ['name' => 'กระทะ','code' => 'J','symbol' => 'heart','type' => 'equipment','decision' => false,'distance' => 0,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'armor','item_name' => 'frying_pan', 'image' => 'frying_pan.png'],
             //- Mount
             ['name' => 'บิ๊กไบค์','code' => '7','symbol' => 'heart','type' => 'equipment','decision' => false,'distance' => 1,'affected_gender' => 'all','immediately' => false,'equipment_type' => 'mount','item_name' => 'bigbike', 'image' => 'bigbike.png'],

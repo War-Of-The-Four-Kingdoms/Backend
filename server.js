@@ -20,14 +20,18 @@ var pos = [];
 var turn = [];
 var is_next_turn = false;
 var stage = [];
+var legionTemp = [];
+var characters = [];
 // var stage_list = ['prepare','decide','draw','play','drop','end'];
 var turn_count = [];
 const apiURL = process.env.API_URL;
 const MAX_WAITING = 35000;
 
 function next_turn(code){
+    console.log('next');
     current_turn_position[code] = next_turn_position[code];
     turn[code] = pos[code].indexOf(next_turn_position[code]);
+    console.log('current '+current_turn_position[code]);
     io.in(code).emit('next turn',current_turn_position[code]);
     turn_count[code]++;
     next_turn_position[code] = pos[code][((turn[code]+1) % pos[code].length)];
@@ -114,6 +118,7 @@ function playerDead(code,player){
                 next_turn_position[code] = pos[code][((turn[code]+1) % pos[code].length)];
             }
             if(current_turn_position[room.code] == player.position){
+                console.log('do');
                 resetTimeout(room.code);
                 next_turn(room.code);
             }
@@ -198,6 +203,7 @@ io.on('connection', async (socket) => {
         socket.to(data.code).emit('change equipment image',{ position: me.position, card: card, type: type});
     });
     await socket.on('use defense',(data) => {
+        let l = legionTemp[data.code];
         let room = rooms.find(r => r.code == data.code);
         let me = room.players.find(p => p.sid == socket.id);
         let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
@@ -209,10 +215,12 @@ io.on('connection', async (socket) => {
                 legion = true;
             }
             io.to(playing.sid).emit('attack success',{ legion: legion });
-            socket.emit('damaged',{damage: data.damage});
+            socket.emit('damaged',{damage: data.damage , legion: l});
         }
+        legionTemp[data.code] = false;
     });
     await socket.on('use attack', (data) => {
+        legionTemp[data.code] = data.legion;
         let room = rooms.find(r => r.code == data.code);
         let me = room.players.find(p => p.sid == socket.id);
         let target = room.players.find(p => p.position == data.target);
@@ -229,7 +237,12 @@ io.on('connection', async (socket) => {
     await socket.on('force attack', (data) => {
         let room = rooms.find(r => r.code == data.code);
         let target = room.players.find(p => p.position == data.target);
-        io.to(target.sid).emit('damaged',{damage: data.damage});
+        io.to(target.sid).emit('damaged',{damage: data.damage , legion: data.legion});
+    });
+    await socket.on('legion drop done', (data) => {
+        let room = rooms.find(r => r.code == data.code);
+        let playing = room.players.find(p => p.position == current_turn_position[data.code]);
+        io.to(playing.sid).emit('legion dropped');
     });
     await socket.on('update hp', (data) => {
         let room = rooms.find(r => r.code == data.code);
@@ -319,32 +332,76 @@ io.on('connection', async (socket) => {
             const kingNormalChar = nChar[Math.floor(Math.random() * nChar.length)];
             nChar = nChar.filter(c => c != kingNormalChar);
             lChar.push(kingNormalChar);
-            room.players.forEach(p => {
-                p.char_selected = false;
-                if(p.role == 'king'){
-                    p.pools = lChar;
-                }
-                else{
-                    let normalChar = [];
-                    for(let i=0; i<4; i++){
-                        if(nChar.find(c => c.id == 19) != null){
-                            const foxia = nChar.find(c => c.id == 19);
-                            normalChar.push(foxia);
-                            nChar = nChar.filter(c => c != foxia);
-                        }
-                        const randChar = nChar[Math.floor(Math.random() * nChar.length)];
-                        normalChar.push(randChar);
-                        nChar = nChar.filter(c => c != randChar);
-                    }
-                    p.pools = normalChar;
-                }
-            });
+            characters[data.code] = nChar;
+            room.players.find(p => p.role == 'king').pools = lChar;
             setTimeout(()=>{
                 room.players.forEach(p => {
-                    io.to(p.sid).emit('random characters',p.pools);
+                    if(p.role == 'king'){
+                        io.to(p.sid).emit('random characters',p.pools);
+                    }else{
+                        io.to(p.sid).emit('waiting king select',p.pools);
+                    }
                 });
-            },5000);
+            },2000);
         // }
+    });
+
+    await socket.on('king selected', async (data) => {
+        let room = rooms.find(r => r.code == data.code);
+        let me = room.players.find(p => p.sid == socket.id);
+        me.character = me.pools.find(pool => pool.id == data.cid);
+        me.char_selected = true;
+        me.remain_hp = me.character.hp + me.extra_hp;
+        me.uuid = users.find(u => u.id == me.sid).uuid;
+        let char = me.pools.filter(pool => pool.id != data.cid);
+        char.forEach(c => {
+            characters[data.code].push(c);
+        });
+        io.in(data.code).emit('set player character',{position: me.position, character: me.character, remain_hp: me.remain_hp});
+        socket.emit('waiting other select character');
+        let nChar = characters[data.code];
+        let charnum = 0;
+        room.players.length == 6 ? charnum = 3 : charnum = 4;
+        room.players.forEach(p => {
+            if(p.role != 'king'){
+                p.char_selected = false;
+                let normalChar = [];
+                if(nChar.find(c => c.id == 16) != null){
+                    const foxia = nChar.find(c => c.id == 16);
+                    normalChar.push(foxia);
+                    nChar = nChar.filter(c => c != foxia);
+                }else if(nChar.find(c => c.id == 24) != null){
+                    const roger = nChar.find(c => c.id == 24);
+                    normalChar.push(roger);
+                    nChar = nChar.filter(c => c != roger);
+                }else if(nChar.find(c => c.id == 18) != null){
+                    const bearyl = nChar.find(c => c.id == 18);
+                    normalChar.push(bearyl);
+                    nChar = nChar.filter(c => c != bearyl);
+                }else if(nChar.find(c => c.id == 5) != null){
+                    const lucifer = nChar.find(c => c.id == 5);
+                    normalChar.push(lucifer);
+                    nChar = nChar.filter(c => c != lucifer);
+                }else if(nChar.find(c => c.id == 26) != null){
+                    const martin = nChar.find(c => c.id == 26);
+                    normalChar.push(martin);
+                    nChar = nChar.filter(c => c != martin);
+                }
+                for(let i=0; i<charnum; i++){
+                    const randChar = nChar[Math.floor(Math.random() * nChar.length)];
+                    normalChar.push(randChar);
+                    nChar = nChar.filter(c => c != randChar);
+                }
+                p.pools = normalChar;
+            }
+        });
+        setTimeout(()=>{
+            room.players.forEach(p => {
+                if(p.role != 'king'){
+                    io.to(p.sid).emit('random characters',p.pools);
+                }
+            });
+        },1000);
     });
 
     await socket.on('character selected', async (data) => {
@@ -386,6 +443,7 @@ io.on('connection', async (socket) => {
         socket.to(data.code).emit('sctc',{username: me.username, message: data.message, position: me.position});
     });
     await socket.on('disconnect', () => {
+        console.log('dis');
         if(users.find(u => u.id == socket.id)){
             if(users.find(u => u.id == socket.id).room != ''){
                 let room = rooms.find(r => r.players.find(p => p.sid == socket.id));
@@ -431,6 +489,7 @@ io.on('connection', async (socket) => {
     //    pos>0?pos--:pos=0;
     });
     await socket.on('start', async (data) => {
+        console.log('start');
         let user = users.find(u => u.uuid == data.uuid);
         if(user != null){
             if(user.id == socket.id){
@@ -454,7 +513,7 @@ io.on('connection', async (socket) => {
                                 }
                                 io.to(room.code).emit('change host',{host: room.host, players: room.players});
                             }
-                            playerDead(data.code,player);
+                            playerDead(room.code,player);
                         }
                     }else{
                         room.players = room.players.filter(p => p.sid != socket.id);
