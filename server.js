@@ -252,7 +252,9 @@ io.on('connection', async (socket) => {
         if(data.hp == 0){
             me.coma = room.players.filter(p =>p.dead == false && p.leaved == false).length-1;
             socket.emit('coma');
-            socket.to(data.code).emit('rescue coma',{ position: me.position });
+            room.players.filter(p =>p.dead == false && p.leaved == false && p.sid != socket.id).forEach(player => {
+                io.to(player.sid).emit('rescue coma',{ position: me.position });
+            })
         }
     });
     await socket.on('rescue coma', (data) => {
@@ -270,7 +272,7 @@ io.on('connection', async (socket) => {
         if(target.coma == 0){
             target.dead = true;
             io.to(target.sid).emit('you died');
-            io.in(data.code).emit('player died',{position: target.position});
+            io.in(data.code).emit('player died',{position: target.position, role: target.role});
             playerDead(data.code,target);
         }
     });
