@@ -276,7 +276,11 @@ io.on('connection', async (socket) => {
             playerDead(data.code,target);
         }
     });
-
+    await socket.on('no hand card', (data) => {
+        let room = rooms.find(r => r.code == data.code);
+        let playing = room.players.find(p => p.position == current_turn_position[data.code]);
+        io.to(playing.sid).emit('target no handcard');
+    });
 
     await socket.on('steal other player card',(data) => {
         let room = rooms.find(r => r.code == data.code);
