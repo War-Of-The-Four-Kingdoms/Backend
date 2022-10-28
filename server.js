@@ -304,9 +304,9 @@ io.on('connection', async (socket) => {
         let nChar = res_char.data.normal;
         let lChar = res_char.data.leader;
         let room = rooms.find(r => r.code == data.code);
-        // if(room.players.filter(p => p.position != 0).length < 4){
-        //     socket.emit('need more player');
-        // }else{
+        if(room.players.filter(p => p.position != 0).length < 4){
+            socket.emit('need more player');
+        }else{
             io.in(data.code).emit('set player info',{ players: users.filter(u => u.room == data.code)});
             let players = room.players;
             const res_role = await axios.get(apiURL+'getRole',{ params: { player_num: players.length } });
@@ -349,7 +349,7 @@ io.on('connection', async (socket) => {
                     }
                 });
             },2000);
-        // }
+        }
     });
 
     await socket.on('king selected', async (data) => {
@@ -372,8 +372,8 @@ io.on('connection', async (socket) => {
             if(p.role != 'king'){
                 p.char_selected = false;
                 let normalChar = [];
-                if(nChar.find(c => c.id == 16) != null){
-                    const foxia = nChar.find(c => c.id == 16);
+                if(nChar.find(c => c.id == 5) != null){
+                    const foxia = nChar.find(c => c.id == 5);
                     normalChar.push(foxia);
                     nChar = nChar.filter(c => c != foxia);
                 }else if(nChar.find(c => c.id == 24) != null){
@@ -384,8 +384,8 @@ io.on('connection', async (socket) => {
                     const bearyl = nChar.find(c => c.id == 18);
                     normalChar.push(bearyl);
                     nChar = nChar.filter(c => c != bearyl);
-                }else if(nChar.find(c => c.id == 5) != null){
-                    const lucifer = nChar.find(c => c.id == 5);
+                }else if(nChar.find(c => c.id == 16) != null){
+                    const lucifer = nChar.find(c => c.id == 16);
                     normalChar.push(lucifer);
                     nChar = nChar.filter(c => c != lucifer);
                 }else if(nChar.find(c => c.id == 26) != null){
