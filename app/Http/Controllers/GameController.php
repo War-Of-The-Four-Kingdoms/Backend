@@ -140,7 +140,6 @@ class GameController extends Controller
                 'character' => $pl['character']['id']??null,
                 'role' => Role::where('name',$pl['role'])->first()->id,
                 'remain_hp' => $pl['remain_hp']??null,
-                'is_playing' => false
             ]);
         }
         $cards = Card::inRandomOrder()->get();

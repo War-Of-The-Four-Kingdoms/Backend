@@ -14,8 +14,7 @@ class Player extends Model
         'user',
         'character',
         'role',
-        'remain_hp',
-        'is_playing'
+        'remain_hp'
     ];
 
     public function cards(){

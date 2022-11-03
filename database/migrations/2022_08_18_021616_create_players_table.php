@@ -16,7 +16,6 @@ class CreatePlayersTable extends Migration
         Schema::create('players', function (Blueprint $table) {
             $table->id();
             $table->integer('remain_hp')->nullable();
-            $table->boolean('is_playing');
             $table->unsignedBigInteger('game');
             $table->foreign('game')->references('id')->on('games');
             $table->unsignedBigInteger('user');
