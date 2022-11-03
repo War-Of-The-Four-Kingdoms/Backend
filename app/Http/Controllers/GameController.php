@@ -70,6 +70,12 @@ class GameController extends Controller
         }
     }
 
+    public function roomEnd(Request $request){
+        Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->delete();
+        Game::where('roomcode',$request->room_code)->update(['is_end' => 1]);
+        return response()->json(['status' => 200]);
+    }
+
     public function drawCard(Request $request){
         $d_cards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit($request->num)->get();
         $first10cards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit(10)->get();
@@ -131,9 +137,9 @@ class GameController extends Controller
             Player::create([
                 'game' => $game->id,
                 'user' => User::where('uuid',$pl['uuid'])->first()->id,
-                'character' => $pl['character']['id'],
+                'character' => $pl['character']['id']??null,
                 'role' => Role::where('name',$pl['role'])->first()->id,
-                'remain_hp' => $pl['remain_hp'],
+                'remain_hp' => $pl['remain_hp']??null,
                 'is_playing' => false
             ]);
         }

@@ -15,7 +15,7 @@ class CreatePlayersTable extends Migration
     {
         Schema::create('players', function (Blueprint $table) {
             $table->id();
-            $table->integer('remain_hp');
+            $table->integer('remain_hp')->nullable();
             $table->boolean('is_playing');
             $table->unsignedBigInteger('game');
             $table->foreign('game')->references('id')->on('games');
@@ -23,7 +23,7 @@ class CreatePlayersTable extends Migration
             $table->foreign('user')->references('id')->on('users');
             $table->unsignedBigInteger('role');
             $table->foreign('role')->references('id')->on('roles');
-            $table->unsignedBigInteger('character');
+            $table->unsignedBigInteger('character')->nullable();
             $table->foreign('character')->references('id')->on('characters');
             $table->timestamps();
         });

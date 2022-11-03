@@ -60,3 +60,4 @@ Route::get('openCard', [GameController::class, 'openCard']);
 Route::put('updateCardInUse', [GameController::class, 'updateCardInUse']);
 Route::get('getTop', [GameController::class, 'getTopCards']);
 Route::put('setNewOrder', [GameController::class, 'setNewOrder']);
+Route::put('roomEnd', [GameController::class, 'roomEnd']);
