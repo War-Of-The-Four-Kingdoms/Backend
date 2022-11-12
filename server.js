@@ -17,7 +17,7 @@ var next_turn_position = [];
 var timeout = [];
 var pos = [];
 var turn = [];
-var is_next_turn = false;
+var is_next_turn = [];
 var stage = [];
 var legionTemp = [];
 var characters = [];
@@ -25,6 +25,19 @@ var characters = [];
 var turn_count = [];
 const apiURL = process.env.API_URL;
 const MAX_WAITING = 35000;
+
+function clear_code(code){
+    delete current_turn_position[code];
+    delete  next_turn_position[code];
+    delete  timeout[code];
+    delete  pos[code];
+    delete  turn[code];
+    delete  is_next_turn[code];
+    delete  stage[code];
+    delete  legionTemp[code];
+    delete  characters[code];
+    delete  turn_count[code];
+}
 
 function next_turn(code){
     console.log('next');
@@ -42,39 +55,39 @@ function next_stage(code){
     switch (stage[code]) {
         case 'prepare':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            is_next_turn = false;
-            // triggerTimeout(code,is_next_turn);
+            is_next_turn[code] = false;
+            // triggerTimeout(code,is_next_turn[code]);
             stage[code] = 'decide';
             break;
 
         case 'decide':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            // triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn[code]);
             stage[code] = 'draw';
             break;
 
         case 'draw':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            // triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn[code]);
             stage[code] = 'play';
             break;
 
         case 'play':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            // triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn[code]);
             stage[code] = 'drop';
             break;
 
         case 'drop':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            // triggerTimeout(code,is_next_turn);
+            // triggerTimeout(code,is_next_turn[code]);
             stage[code] = 'end';
             break;
 
         case 'end':
             io.in(code).emit('change stage',{ position: current_turn_position[code] , stage: stage[code]});
-            is_next_turn = true;
-            // triggerTimeout(code,is_next_turn);
+            is_next_turn[code] = true;
+            // triggerTimeout(code,is_next_turn[code]);
             stage[code] = 'prepare';
             break;
     }
@@ -127,6 +140,7 @@ async function playerDead(code,player){
                 next_turn_position[code] = pos[code][((turn[code]+1) % pos[code].length)];
             }
             if(current_turn_position[room.code] == player.position){
+                console.log('do');
                 resetTimeout(room.code);
                 next_turn(room.code);
             }
@@ -162,7 +176,6 @@ async function playerLeave(room,sid){
                     io.to(room.code).emit('change host',{host: room.host, players: room.players});
                 }
                 playerDead(room.code,player);
-
             }
         }else{
             room.players = room.players.filter(p => p.sid != sid);
@@ -201,7 +214,7 @@ io.on('connection', async (socket) => {
             if(room.players.some(p => p.sid == socket.id)){
                 let me = room.players.find(p => p.sid == socket.id);
                 if(me.position == current_turn_position[data.code]){
-                    if(is_next_turn){
+                    if(is_next_turn[data.code]){
                         resetTimeout(data.code);
                         next_turn(data.code);
                     }else{
@@ -215,150 +228,187 @@ io.on('connection', async (socket) => {
 
     });
     await socket.on('trigger others effect',(data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let me = room.players.find(p => p.sid == socket.id);
-        let target = room.players.find(p => p.position == data.position);
-        io.to(target.sid).emit('trigger special effect',{ target: me });
+        if(rooms.some(r => r.code == data.code)){
+            let room = rooms.find(r => r.code == data.code);
+            if(room.players.some(p => p.sid == socket.id) && room.players.some(p => p.position == data.position)){
+            let me = room.players.find(p => p.sid == socket.id);
+            let target = room.players.find(p => p.position == data.position);
+            io.to(target.sid).emit('trigger special effect',{ target: me });
+            }
+        }
     });
     await socket.on('special effect end',(data) => {
-        let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
-        io.to(playing.sid).emit('next queue');
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
+            let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
+            io.to(playing.sid).emit('next queue');
+        }
     });
     await socket.on('martin effect',(data) => {
-        let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
-        io.to(playing.sid).emit('draw num adjust',{ num: -1});
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
+            let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
+            io.to(playing.sid).emit('draw num adjust',{ num: -1});
+        }
     });
     await socket.on('merguin effect',(data) => {
-        let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
-        io.to(playing.sid).emit('set decision result',{ card: data.card});
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
+            let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
+            io.to(playing.sid).emit('set decision result',{ card: data.card});
+        }
     });
     await socket.on('update inhand card',(data) => {
-        let me = rooms.find(r => r.code == data.code).players.find(p => p.sid == socket.id);
-        me.in_hand = data.hand;
-        io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.sid == socket.id)){
+            let me = rooms.find(r => r.code == data.code).players.find(p => p.sid == socket.id);
+            me.in_hand = data.hand;
+            io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
+        }
     });
     await socket.on('change equipment',(data) => {
-        let me = rooms.find(r => r.code == data.code).players.find(p => p.sid == socket.id);
-        me.in_hand = me.in_hand.filter(ih => ih.id != data.card.id);
-        let card = data.card.info;
-        let type = null;
-        if(card.type == 'equipment'){
-            if(card.equipment_type == 'weapon'){
-                me.weapon = data.card
-                type = 'weapon';
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.sid == socket.id)){
+            let me = rooms.find(r => r.code == data.code).players.find(p => p.sid == socket.id);
+            me.in_hand = me.in_hand.filter(ih => ih.id != data.card.id);
+            let card = data.card.info;
+            let type = null;
+            if(card.type == 'equipment'){
+                if(card.equipment_type == 'weapon'){
+                    me.weapon = data.card
+                    type = 'weapon';
+                }
+                else if(card.equipment_type == 'armor'){
+                    me.armor = data.card
+                    type = 'armor';
+                }
+                else if(card.equipment_type == 'mount'){
+                    if(card.distance == 1){
+                        me.mount1 = data.card
+                        type = 'mount1';
+                        socket.to(data.code).emit('increase enemy distance',{ position: me.position, distance: 1});
+                    }else{
+                        me.mount2 = data.card
+                        type = 'mount2';
+                    }
+                }
             }
-            else if(card.equipment_type == 'armor'){
-                me.armor = data.card
-                type = 'armor';
-            }
-            else if(card.equipment_type == 'mount'){
-                if(card.distance == 1){
-                    me.mount1 = data.card
-                    type = 'mount1';
-                    socket.to(data.code).emit('increase enemy distance',{ position: me.position, distance: 1});
+            io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
+            socket.to(data.code).emit('change equipment image',{ position: me.position, card: card, type: type});
+        }
+    });
+    await socket.on('use defense',(data) => {
+        if(rooms.some(r => r.code == data.code)){
+            let l = legionTemp[data.code];
+            let room = rooms.find(r => r.code == data.code);
+            if(room.players.some(p => p.sid == socket.id) && room.players.some(p => p.position == current_turn_position[data.code])){
+                let me = room.players.find(p => p.sid == socket.id);
+                let playing = room.players.find(p => p.position == current_turn_position[data.code]);
+                let legion = false;
+                if(data.canDef){
+                    io.to(playing.sid).emit('attack fail');
                 }else{
-                    me.mount2 = data.card
-                    type = 'mount2';
+                    if(me.character.char_name == "legioncommander"){
+                        legion = true;
+                    }
+                    io.to(playing.sid).emit('attack success',{ legion: legion });
+                    socket.emit('damaged',{damage: data.damage , legion: l});
+                }
+                legionTemp[data.code] = false;
+            }
+        }
+    });
+    await socket.on('use attack', (data) => {
+        if(rooms.some(r => r.code == data.code)){
+            legionTemp[data.code] = data.legion;
+            let room = rooms.find(r => r.code == data.code);
+            if(room.players.some(p => p.sid == socket.id) && room.players.some(p => p.position == data.target)){
+                let me = room.players.find(p => p.sid == socket.id);
+                let target = room.players.find(p => p.position == data.target);
+                let extra_def = false;
+                let ignore_armor = false
+                if(me.character.char_name == 'roger'){
+                    extra_def = true;
+                }
+                if(me.weapon != null && me.weapon.info.item_name == 'shield_breaker'){
+                    ignore_armor = true;
+                }
+                io.to(target.sid).emit('attacked',{damage: data.damage,extra_def: extra_def,ignore_armor: ignore_armor});
+            }
+        }
+    });
+    await socket.on('force attack', (data) => {
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.target)){
+            let target = rooms.find(r => r.code == data.code).players.find(p => p.position == data.target);
+            io.to(target.sid).emit('damaged',{damage: data.damage , legion: data.legion});
+        }
+    });
+    await socket.on('legion drop done', (data) => {
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
+            let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
+            io.to(playing.sid).emit('legion dropped');
+        }
+    });
+    await socket.on('update hp', (data) => {
+        if(rooms.some(r => r.code == data.code)){
+            let room = rooms.find(r => r.code == data.code);
+            if(room.players.some(p => p.sid == socket.id)){
+                let me = room.players.find(p => p.sid == socket.id);
+                me.remain_hp = data.hp
+                socket.to(data.code).emit('update remain hp',{ position: me.position, hp: me.remain_hp});
+                if(data.hp == 0){
+                    me.coma = room.players.filter(p =>p.dead == false && p.leaved == false).length-1;
+                    socket.emit('coma');
+                    room.players.filter(p =>p.dead == false && p.leaved == false && p.sid != socket.id).forEach(player => {
+                        io.to(player.sid).emit('rescue coma',{ position: me.position });
+                    })
                 }
             }
         }
-        io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
-        socket.to(data.code).emit('change equipment image',{ position: me.position, card: card, type: type});
-    });
-    await socket.on('use defense',(data) => {
-        let l = legionTemp[data.code];
-        let room = rooms.find(r => r.code == data.code);
-        let me = room.players.find(p => p.sid == socket.id);
-        let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
-        let legion = false;
-        if(data.canDef){
-            io.to(playing.sid).emit('attack fail');
-        }else{
-            if(me.character.char_name == "legioncommander"){
-                legion = true;
-            }
-            io.to(playing.sid).emit('attack success',{ legion: legion });
-            socket.emit('damaged',{damage: data.damage , legion: l});
-        }
-        legionTemp[data.code] = false;
-    });
-    await socket.on('use attack', (data) => {
-        legionTemp[data.code] = data.legion;
-        let room = rooms.find(r => r.code == data.code);
-        let me = room.players.find(p => p.sid == socket.id);
-        let target = room.players.find(p => p.position == data.target);
-        let extra_def = false;
-        let ignore_armor = false
-        if(me.character.char_name == 'roger'){
-            extra_def = true;
-        }
-        if(me.weapon != null && me.weapon.info.item_name == 'shield_breaker'){
-            ignore_armor = true;
-        }
-        io.to(target.sid).emit('attacked',{damage: data.damage,extra_def: extra_def,ignore_armor: ignore_armor});
-    });
-    await socket.on('force attack', (data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let target = room.players.find(p => p.position == data.target);
-        io.to(target.sid).emit('damaged',{damage: data.damage , legion: data.legion});
-    });
-    await socket.on('legion drop done', (data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let playing = room.players.find(p => p.position == current_turn_position[data.code]);
-        io.to(playing.sid).emit('legion dropped');
-    });
-    await socket.on('update hp', (data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let me = room.players.find(p => p.sid == socket.id);
-        me.remain_hp = data.hp
-        socket.to(data.code).emit('update remain hp',{ position: me.position, hp: me.remain_hp});
-        if(data.hp == 0){
-            me.coma = room.players.filter(p =>p.dead == false && p.leaved == false).length-1;
-            socket.emit('coma');
-            room.players.filter(p =>p.dead == false && p.leaved == false && p.sid != socket.id).forEach(player => {
-                io.to(player.sid).emit('rescue coma',{ position: me.position });
-            })
-        }
-    });
-    await socket.on('rescue coma', (data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let target = room.players.find(p => p.position == data.target);
-        target.remain_hp += 1;
-        socket.to(data.code).emit('coma rescued',{position: target.position});
-        io.in(data.code).emit('update remain hp',{ position: target.position, hp: target.remain_hp});
 
     });
+    await socket.on('rescue coma', (data) => {
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.target)){
+            let target = rooms.find(r => r.code == data.code).players.find(p => p.position == data.target);
+            target.remain_hp += 1;
+            socket.to(data.code).emit('coma rescued',{position: target.position});
+            io.in(data.code).emit('update remain hp',{ position: target.position, hp: target.remain_hp});
+        }
+    });
     await socket.on('ignore coma', (data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let target = room.players.find(p => p.position == data.target);
-        target.coma -= 1;
-        if(target.coma == 0){
-            target.dead = true;
-            io.to(target.sid).emit('you died');
-            playerDead(data.code,target);
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.target)){
+            let target = rooms.find(r => r.code == data.code).players.find(p => p.position == data.target);
+            target.coma -= 1;
+            if(target.coma == 0){
+                target.dead = true;
+                io.to(target.sid).emit('you died');
+                playerDead(data.code,target);
+            }
         }
     });
     await socket.on('no hand card', (data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let playing = room.players.find(p => p.position == current_turn_position[data.code]);
-        io.to(playing.sid).emit('target no handcard');
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
+            let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
+            io.to(playing.sid).emit('target no handcard');
+        }
     });
 
     await socket.on('steal other player card',(data) => {
-        let room = rooms.find(r => r.code == data.code);
-        let me = room.players.find(p => p.sid == socket.id);
-        let stealedCards = [];
-        data.selected.forEach(sl => {
-            let target = room.players.find(p => p.uuid == sl.uuid);
-            let card = [target.in_hand[sl.index]];
-            stealedCards.push(card[0]);
-            me.in_hand.push(card[0]);
-            target.in_hand = target.in_hand.filter(c => c.id != card[0].id);
-            io.to(target.sid).emit('card stolen',{ position: me.position, cards: card});
-            io.in(data.code).emit('update inhand',{ position: target.position, card_num: target.in_hand.length});
-        });
-        socket.emit('get card from others',{cards: stealedCards});
-        io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
+        if(rooms.some(r => r.code == data.code)){
+            let room = rooms.find(r => r.code == data.code);
+            if(room.players.some(p => p.sid == socket.id)){
+                let me = room.players.find(p => p.sid == socket.id);
+                let stealedCards = [];
+                data.selected.forEach(sl => {
+                    if(room.players.some(p => p.uuid == sl.uuid)){
+                        let target = room.players.find(p => p.uuid == sl.uuid);
+                        let card = [target.in_hand[sl.index]];
+                        stealedCards.push(card[0]);
+                        me.in_hand.push(card[0]);
+                        target.in_hand = target.in_hand.filter(c => c.id != card[0].id);
+                        io.to(target.sid).emit('card stolen',{ position: me.position, cards: card});
+                        io.in(data.code).emit('update inhand',{ position: target.position, card_num: target.in_hand.length});
+                    }
+                });
+                socket.emit('get card from others',{cards: stealedCards});
+                io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
+            }
+        }
     });
 
     await socket.on('start game', async (data) => {
@@ -366,11 +416,11 @@ io.on('connection', async (socket) => {
         let nChar = res_char.data.normal;
         let lChar = res_char.data.leader;
         let room = rooms.find(r => r.code == data.code);
-        if(room.players.filter(p => p.position == 0).length > 0){
-            socket.emit('player not select pos');
-        }else if(room.players.filter(p => p.position != 0).length < 4){
-            socket.emit('need more player');
-        }else{
+        // if(room.players.filter(p => p.position == 0).length > 0){
+        //     socket.emit('player not select pos');
+        // }else if(room.players.filter(p => p.position != 0).length < 4){
+        //     socket.emit('need more player');
+        // }else{
             io.in(data.code).emit('set player info',{ players: users.filter(u => u.room == data.code)});
             let players = room.players;
             const res_role = await axios.get(apiURL+'getRole',{ params: { player_num: players.length } });
@@ -398,6 +448,7 @@ io.on('connection', async (socket) => {
             current_turn_position[room.code] = next_turn_position[data.code];
             turn[data.code] = pos[data.code].indexOf(next_turn_position[data.code]);
             turn_count[data.code] = 0;
+            is_next_turn[data.code] = false;
             // setTimeout(()=>{next_turn(data.code);},5000);
             room.is_started = true;
             room.is_end = false;
@@ -415,7 +466,20 @@ io.on('connection', async (socket) => {
                     }
                 });
             },2000);
-        }
+        // }
+        console.log('------------------------');
+        console.log(users);
+        console.log('------------------------');
+        console.log(rooms);
+        console.log('------------------------');
+        console.log(current_turn_position[data.code]);
+        console.log(next_turn_position[data.code]);
+        console.log(timeout[data.code]);
+        console.log(pos[data.code]);
+        console.log(turn[data.code]);
+        console.log(is_next_turn[data.code]);
+        console.log(stage[data.code]);
+        console.log('------------------------');
     });
 
     await socket.on('king selected', async (data) => {
