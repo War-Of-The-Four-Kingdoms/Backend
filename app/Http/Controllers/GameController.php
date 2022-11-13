@@ -40,89 +40,90 @@ class GameController extends Controller
     }
 
     public function getTopCards(Request $request){
-        $topCards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit($request->num)->get();
+        $topCards = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit($request->num)->get();
         return $topCards;
     }
 
     public function setNewOrder(Request $request){
-        //neworder: [155,125,140] , drop: [177,156] , card_num: 5 , room_code: 'asfasf'
-        $first10c = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit(10)->get();
+        //neworder: [155,125,140] , drop: [177,156] , card_num: 5 , roomcode: 'asfasf'
+        $indeck = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'asc')->get();
+        foreach($indeck as $index=>$card){
+            if($index>=$request->card_num){
+                $card->order = $card->order-$request->drop->length;
+                $card->save();
+            }
+        }
+        $lastorder = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'desc')->first()->order;
         if($request->neworder->length != 0){
-            foreach($request->neworder as $noindex=>$card_id) {
-                Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('id',$card_id)->update(['order' => $noindex+1]);
+            foreach($request->neworder as $nindex=>$card_id) {
+                Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('id',$card_id)->update(['order' => $nindex+1]);
             }
         }
         if($request->neworder->length != 0){
-            foreach($request->drop as $dcard_id) {
-                Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('id',$dcard_id)->update(['order' => 99]);
+            foreach($request->drop as $dindex=>$dcard_id) {
+                Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('id',$dcard_id)->update(['order' => $lastorder+$dindex+1]);
             }
-        }
-        $newcards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->where('order', 99)->inRandomOrder()->limit($request->drop->length)->get();
-        foreach ($first10c as $findex=>$fcard) {
-            if($findex>=$request->card_num){
-                $fcard->order = $fcard->order-$request->drop->length;
-            }
-            $fcard->save();
-        }
-        foreach($newcards as $nindex=>$ncard){
-            $ncard->order = abs($nindex-10);
-            $ncard->save();
         }
     }
 
     public function roomEnd(Request $request){
-        Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->delete();
-        Game::where('roomcode',$request->room_code)->update(['is_end' => 1]);
+        Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->delete();
+        Game::where('roomcode',$request['roomcode'])->update(['is_end' => 1]);
         return response()->json(['status' => 200]);
     }
 
     public function drawCard(Request $request){
-        $d_cards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit($request->num)->get();
-        $first10cards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit(10)->get();
-        $newcards = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->where('order', 99)->inRandomOrder()->limit($request->num)->get();
+        $d_cards = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit($request->num)->get();
+        $indeck = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'asc')->get();
         foreach($d_cards as $index=>$dcard){
             $dcard->info = Card::where('id',$dcard->card)->first();
         }
-        foreach($first10cards as $index=>$card){
+        foreach($indeck as $index=>$card){
             if($index<$request->num){
                 $card->in_use = true;
-                $card->order = 99;
+                $card->order = 0;
             }else{
                 $card->order = $card->order-$request->num;
             }
             $card->save();
-        }
-        foreach($newcards as $index=>$ncard){
-            $ncard->order = abs($index-10);
-            $ncard->save();
         }
         return $d_cards;
     }
 
     public function openCard(Request $request){
-        $open_card = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->first();
-        $first10card = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->orderBy('order', 'asc')->limit(10)->get();
-        $newcard = Carddeck::where('game',Game::where('roomcode',$request->room_code)->first()->id)->where('in_use',false)->where('order', 99)->inRandomOrder()->first();
-        foreach($first10card as $index=>$card){
+        $open_card = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'asc')->first();
+        $indeck = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'asc')->get();
+        $lastorder = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'desc')->first()->order;
+        foreach($indeck as $index=>$card){
             if($index<1){
-                $card->order = 99;
+                $card->order = $lastorder;
             }else{
-                $card->order = $card->order-$request->num;
+                $card->order = $card->order-1;
             }
             $card->save();
         }
-        $newcard->order = 10;
         $open_card->info = Card::where('id',$open_card->card)->first();
         return $open_card;
     }
 
     public function dropCard(Request $request){
-        Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->whereIn('id',$request['cards'])->update(['in_use' => 0]);
+        $card_drop = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',true)->whereIn('id',$request['cards'])->get();
+        $lastorder = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->orderBy('order', 'desc')->first()->order;
+        foreach($card_drop as $index=>$card){
+            $card->order = $lastorder+$index+1;
+            $card->in_use = false;
+            $card->save();
+        }
         return response()->json(['status' => 200]);
     }
 
     public function updateCardInUse(Request $request){
-        Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->whereIn('id',$request['cards'])->update(['in_use' => 1]);
+        $card_update = Carddeck::where('game',Game::where('roomcode',$request['roomcode'])->first()->id)->where('in_use',false)->whereIn('id',$request['cards'])->get();
+        foreach($card_update as $index=>$card){
+            $card->order = 0;
+            $card->in_use = true;
+            $card->save();
+        }
         return response()->json(['status' => 200]);
     }
 
@@ -148,11 +149,8 @@ class GameController extends Controller
                 'card' => $card->id,
                 'game' => $game->id,
                 'in_use' => false,
-                'order' => 99
+                'order' => $index+1
             ]);
-            if($index < 10){
-                $carddeck->order = $index+1;
-            }
             $carddeck->save();
         }
     }
