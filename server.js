@@ -16,6 +16,8 @@ var current_turn_position = [];
 var next_turn_position = [];
 var timeout = [];
 var pos = [];
+var banquet_pos = [];
+var banquet_cards = [];
 var turn = [];
 var is_next_turn = [];
 var stage = [];
@@ -346,14 +348,57 @@ io.on('connection', async (socket) => {
     });
 
     await socket.on('set decision card', (data) => {
-        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.target)){
-            let target = rooms.find(r => r.code == data.code).players.find(p => p.position == data.target);
-            io.in(data.code).emit('add decision card image',{position: data.target , card: data.card});
-        }
+            io.in(data.code).emit('add decision card',{position: data.target, card: data.card});
     });
     await socket.on('decision card done', (data) => {
-        io.in(data.code).emit('remove decision card image',{position: data.position, card: data.card});
+        io.in(data.code).emit('remove decision card',{position: data.position, card: data.card});
     });
+    await socket.on('russianroulette next', (data) => {
+        io.in(data.code).emit('russianroulette pass',{position: data.position, target: next_turn_position[data.code] , card: data.card});
+    });
+    await socket.on('use banquet trick', async (data) => {
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.position)){
+            let x = [];
+            for (let i = 0; i < 6; i++) {
+                if(data.position+i <= 6){
+                    x.push(data.position+i);
+                }else{
+                    x.push((data.position+i)%6);
+                }
+            }
+            banquet_pos[data.code] = [];
+            x.forEach(p => {
+                if(pos[data.code].includes(p)){
+                    banquet_pos[data.code].push(p);
+                }
+            });
+            let num = pos[data.code].length;
+            let res = await axios.get(apiURL+'drawCard',{ params: { roomcode: data.code, num: num}});
+            let cards = res.data;
+            cards.forEach(c => {
+                c.selected = false;
+                c.owner = 0;
+            });
+            banquet_cards[data.code] = cards;
+            io.in(data.code).emit('set banquet card',{cards: cards , position: data.position});
+        }
+    });
+    await socket.on('banquet select', (data) => {
+        if(rooms.some(r => r.code == data.code)){
+            if(banquet_pos[data.code][0] == data.position){
+                banquet_cards[data.code].find(c => c.id == data.cid).owner = data.position;
+                banquet_pos[data.code] = banquet_pos[data.code].filter(bp => bp != data.position);
+                if(banquet_pos[data.code].length > 0){
+                    io.in(data.code).emit('banquet next',{position: banquet_pos[data.code][0] , selected_pos: data.position , cid: data.cid});
+                }else{
+                    io.in(data.code).emit('banquet done',{cards: banquet_cards[data.code]});
+                    banquet_cards[data.code] = [];
+                    banquet_pos[data.code] = [];
+                }
+            }
+        }
+    });
+
     await socket.on('legion drop done', (data) => {
         if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
             let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
