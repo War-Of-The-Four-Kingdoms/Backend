@@ -356,6 +356,25 @@ io.on('connection', async (socket) => {
     await socket.on('russianroulette next', (data) => {
         io.in(data.code).emit('russianroulette pass',{position: data.position, target: next_turn_position[data.code] , card: data.card});
     });
+    await socket.on('use teatime trick', (data) => {
+        io.in(data.code).emit('teatime heal',{position: data.position});
+    });
+    await socket.on('use callcenter', (data) => {
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.target)){
+            let target = rooms.find(r => r.code == data.code).players.find(p => p.position == data.target);
+            io.to(target.sid).emit('callcenter drop',{ position: data.position });
+        }
+    });
+    await socket.on('drop equipment', (data) => {
+        console.log(data);
+        io.in(data.code).emit('other drop equipment',{position: data.position, type: data.type});
+    });
+    await socket.on('callcenter drop done', (data) => {
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
+            let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
+            io.to(playing.sid).emit('callcenter done');
+        }
+    });
     await socket.on('use banquet trick', async (data) => {
         if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.position)){
             let x = [];
