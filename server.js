@@ -245,6 +245,54 @@ io.on('connection', async (socket) => {
             }
         }
     });
+    await socket.on('use steal trick',(data) => {
+        if(rooms.some(r => r.code == data.code)){
+            let room = rooms.find(r => r.code == data.code);
+            if(room.players.some(p => p.position == data.target)){
+                let target = room.players.find(p => p.position == data.target);
+                socket.emit('set steal cards',{ cards: target.in_hand });
+            }
+        }
+    });
+    await socket.on('steal other card',(data) => {
+        console.log(data);
+        if(rooms.some(r => r.code == data.code)){
+            let room = rooms.find(r => r.code == data.code);
+            if(room.players.some(p => p.sid == socket.id) && room.players.some(p => p.position == data.target)){
+                let me = room.players.find(p => p.sid == socket.id);
+                let target = room.players.find(p => p.position == data.target);
+                io.to(target.sid).emit('card stolen trick',{ position: me.position, type: data.type, card: data.card});
+                if(data.type == 'hand'){
+                    me.in_hand.push(target.in_hand.find(ih => ih.id == data.card.id));
+                    target.in_hand = target.in_hand.filter(c => c.id != data.card.id);
+                    io.in(data.code).emit('update inhand',{ position: target.position, card_num: target.in_hand.length});
+                }else{
+                    switch(data.type){
+                        case 'weapon':
+                            me.in_hand.push(target.weapon);
+                            target.weapon = null;
+                            break;
+                        case 'armor':
+                            me.in_hand.push(target.armor);
+                            target.armor = null;
+                            break;
+                        case 'mount1':
+                            me.in_hand.push(target.mount1);
+                            target.mount1 = null;
+                            break;
+                        case 'mount2':
+                            me.in_hand.push(target.mount2);
+                            target.mount2 = null;
+                            break;
+                    }
+                    io.in(data.code).emit('other drop equipment',{position: target.position, type: data.type});
+                }
+                socket.emit('get card from others',{cards: data.card});
+                io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
+            }
+        }
+    });
+
     await socket.on('special effect end',(data) => {
         if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
             let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
@@ -297,7 +345,7 @@ io.on('connection', async (socket) => {
                 }
             }
             io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
-            socket.to(data.code).emit('change equipment image',{ position: me.position, card: card, type: type});
+            socket.to(data.code).emit('change equipment image',{ position: me.position, card: data.card, type: type});
         }
     });
     await socket.on('use defense',(data) => {
