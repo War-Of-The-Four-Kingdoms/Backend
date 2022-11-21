@@ -18,6 +18,9 @@ var timeout = [];
 var pos = [];
 var banquet_pos = [];
 var banquet_cards = [];
+var aoe_pos = [];
+var waitingComa = [];
+var aoeTrickType = [];
 var turn = [];
 var is_next_turn = [];
 var stage = [];
@@ -493,9 +496,19 @@ io.on('connection', async (socket) => {
     await socket.on('rescue coma', (data) => {
         if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.target)){
             let target = rooms.find(r => r.code == data.code).players.find(p => p.position == data.target);
-            target.remain_hp += 1;
-            socket.to(data.code).emit('coma rescued',{position: target.position});
-            io.in(data.code).emit('update remain hp',{ position: target.position, hp: target.remain_hp});
+            if(target.remain_hp == 0){
+                target.remain_hp += 1;
+                socket.to(data.code).emit('coma rescued',{position: target.position});
+                io.in(data.code).emit('update remain hp',{ position: target.position, hp: target.remain_hp});
+                if(waitingComa){
+                    if(aoe_pos[data.code].length > 0){
+                        io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0],type: aoeTrickType[data.code]});
+                    }else{
+                        io.in(data.code).emit('aoe trick done',{type: aoeTrickType[data.code]});
+                        aoe_pos[data.code] = [];
+                    }
+                }
+            }
         }
     });
     await socket.on('ignore coma', (data) => {
@@ -505,6 +518,15 @@ io.on('connection', async (socket) => {
             if(target.coma == 0){
                 target.dead = true;
                 io.to(target.sid).emit('you died');
+                if(waitingComa){
+                    if(aoe_pos[data.code].length > 0){
+                        io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0],type: aoeTrickType[data.code]});
+                    }else{
+                        io.in(data.code).emit('aoe trick done',{type: aoeTrickType[data.code]});
+                        aoe_pos[data.code] = [];
+                    }
+
+                }
                 playerDead(data.code,target);
             }
         }
@@ -513,6 +535,64 @@ io.on('connection', async (socket) => {
         if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
             let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
             io.to(playing.sid).emit('target no handcard');
+        }
+    });
+    await socket.on('use aoe trick', async (data) => {
+        if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.position)){
+            let x = [];
+            for (let i = 0; i < 6; i++) {
+                if(data.position+i <= 6){
+                    x.push(data.position+i);
+                }else{
+                    x.push((data.position+i)%6);
+                }
+            }
+            aoe_pos[data.code] = [];
+            x.forEach(p => {
+                if(pos[data.code].includes(p) && p != data.position){
+                    aoe_pos[data.code].push(p);
+                }
+            });
+            console.log(aoe_pos[data.code]);
+            io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0], type: data.type});
+        }
+    });
+    await socket.on('counter aoe trick', async (data) => {
+        if(data.canCounter){
+            io.in(data.code).emit('other countered',{position: data.position, success: true});
+            aoe_pos[data.code] = aoe_pos
+            [data.code].filter(bp => bp != data.position);
+            if(aoe_pos[data.code].length > 0){
+                io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0],type: data.type});
+            }else{
+                io.in(data.code).emit('aoe trick done',{position: aoe_pos[data.code][0],type: data.type});
+                aoe_pos[data.code] = [];
+            }
+        }else{
+            io.in(data.code).emit('other countered',{position: data.position , success: false});
+            if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.position)){
+                let me = rooms.find(r => r.code == data.code).players.find(p => p.position == data.position);
+                me.hp -= 1;
+                socket.to(data.code).emit('update remain hp',{ position: me.position, hp: me.remain_hp});
+                aoe_pos[data.code] = aoe_pos[data.code].filter(ap => ap != data.position);
+                if(me.hp == 0){
+                    me.coma = room.players.filter(p =>p.dead == false && p.leaved == false).length-1;
+                    socket.emit('coma');
+                    room.players.filter(p =>p.dead == false && p.leaved == false && p.sid != socket.id).forEach(player => {
+                        io.to(player.sid).emit('rescue coma',{ position: me.position });
+                    })
+                    waitingComa[data.code] = true;
+                    aoeTrickType[data.code] = data.type;
+                }else{
+                    if(aoe_pos[data.code].length > 0){
+                        io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0],type: data.type});
+                    }else{
+                        io.in(data.code).emit('aoe trick done',{type: data.type});
+                        aoe_pos[data.code] = [];
+                    }
+                }
+            }
+
         }
     });
 
