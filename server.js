@@ -142,7 +142,6 @@ async function playerDead(code,player){
         }else{
             pos[room.code] = pos[room.code].filter(p => p != player.position);
             let ihc = [];
-            console.log(player);
             player.in_hand.forEach(card => {
                 ihc.push(card.id);
             });
@@ -258,7 +257,6 @@ io.on('connection', async (socket) => {
         }
     });
     await socket.on('steal other card',(data) => {
-        console.log(data);
         if(rooms.some(r => r.code == data.code)){
             let room = rooms.find(r => r.code == data.code);
             if(room.players.some(p => p.sid == socket.id) && room.players.some(p => p.position == data.target)){
@@ -417,7 +415,6 @@ io.on('connection', async (socket) => {
         }
     });
     await socket.on('drop equipment', (data) => {
-        console.log(data);
         io.in(data.code).emit('other drop equipment',{position: data.position, type: data.type});
     });
     await socket.on('callcenter drop done', (data) => {
@@ -559,11 +556,11 @@ io.on('connection', async (socket) => {
                     aoe_pos[data.code].push(p);
                 }
             });
-            console.log(aoe_pos[data.code]);
             io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0], type: data.type});
         }
     });
     await socket.on('counter aoe trick', async (data) => {
+        console.log(data);
         if(data.canCounter){
             io.in(data.code).emit('other countered',{position: data.position, success: true});
             aoe_pos[data.code] = aoe_pos
@@ -580,10 +577,10 @@ io.on('connection', async (socket) => {
             io.in(data.code).emit('other countered',{position: data.position , success: false});
             if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.position)){
                 let me = rooms.find(r => r.code == data.code).players.find(p => p.position == data.position);
-                me.hp -= 1;
-                socket.to(data.code).emit('update remain hp',{ position: me.position, hp: me.remain_hp});
+                me.remain_hp -= 1;
+                io.in(data.code).emit('update remainhp aoe',{ position: me.position, hp: me.remain_hp});
                 aoe_pos[data.code] = aoe_pos[data.code].filter(ap => ap != data.position);
-                if(me.hp == 0){
+                if(me.remain_hp == 0){
                     me.coma = room.players.filter(p =>p.dead == false && p.leaved == false).length-1;
                     socket.emit('coma');
                     room.players.filter(p =>p.dead == false && p.leaved == false && p.sid != socket.id).forEach(player => {
@@ -634,11 +631,11 @@ io.on('connection', async (socket) => {
         let nChar = res_char.data.normal;
         let lChar = res_char.data.leader;
         let room = rooms.find(r => r.code == data.code);
-        // if(room.players.filter(p => p.position == 0).length > 0){
-        //     socket.emit('player not select pos');
-        // }else if(room.players.filter(p => p.position != 0).length < 4){
-        //     socket.emit('need more player');
-        // }else{
+        if(room.players.filter(p => p.position == 0).length > 0){
+            socket.emit('player not select pos');
+        }else if(room.players.filter(p => p.position != 0).length < 4){
+            socket.emit('need more player');
+        }else{
             io.in(data.code).emit('set player info',{ players: users.filter(u => u.room == data.code)});
             let players = room.players;
             const res_role = await axios.get(apiURL+'getRole',{ params: { player_num: players.length } });
@@ -667,7 +664,6 @@ io.on('connection', async (socket) => {
             turn[data.code] = pos[data.code].indexOf(next_turn_position[data.code]);
             turn_count[data.code] = 0;
             is_next_turn[data.code] = false;
-            // setTimeout(()=>{next_turn(data.code);},5000);
             room.is_started = true;
             room.is_end = false;
             const kingNormalChar = nChar[Math.floor(Math.random() * nChar.length)];
@@ -684,7 +680,7 @@ io.on('connection', async (socket) => {
                     }
                 });
             },2000);
-        // }
+        }
     });
 
     await socket.on('king selected', async (data) => {
@@ -700,33 +696,11 @@ io.on('connection', async (socket) => {
         io.in(data.code).emit('set player character',{position: me.position, character: me.character, remain_hp: me.remain_hp});
         socket.emit('waiting other select character');
         let nChar = characters[data.code];
-        let charnum = 0;
-        room.players.length == 6 ? charnum = 3 : charnum = 4;
+        let charnum = 4;
         room.players.forEach(p => {
             if(p.role != 'king'){
                 p.char_selected = false;
                 let normalChar = [];
-                if(nChar.find(c => c.id == 5) != null){
-                    const foxia = nChar.find(c => c.id == 5);
-                    normalChar.push(foxia);
-                    nChar = nChar.filter(c => c != foxia);
-                }else if(nChar.find(c => c.id == 24) != null){
-                    const roger = nChar.find(c => c.id == 24);
-                    normalChar.push(roger);
-                    nChar = nChar.filter(c => c != roger);
-                }else if(nChar.find(c => c.id == 18) != null){
-                    const bearyl = nChar.find(c => c.id == 18);
-                    normalChar.push(bearyl);
-                    nChar = nChar.filter(c => c != bearyl);
-                }else if(nChar.find(c => c.id == 16) != null){
-                    const lucifer = nChar.find(c => c.id == 16);
-                    normalChar.push(lucifer);
-                    nChar = nChar.filter(c => c != lucifer);
-                }else if(nChar.find(c => c.id == 26) != null){
-                    const martin = nChar.find(c => c.id == 26);
-                    normalChar.push(martin);
-                    nChar = nChar.filter(c => c != martin);
-                }
                 for(let i=0; i<charnum; i++){
                     const randChar = nChar[Math.floor(Math.random() * nChar.length)];
                     normalChar.push(randChar);

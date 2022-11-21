@@ -41,8 +41,8 @@ class CharacterSeeder extends Seeder
             ['name' => 'เมอกวิ้น', 'tribe' => 'animal', 'hp' => 3,'gender' => 'male','is_leader' => false,'image_name' => 'merguin.png','char_name'=>'merguin'],
             ['name' => 'ซีลกาเมซ', 'tribe' => 'animal', 'hp' => 4,'gender' => 'male','is_leader' => true,'image_name' => 'sealgamesh.png','char_name'=>'sealgamesh'],
             //Human
-            ['name' => 'อสรพิษ นายอนเน่ห์', 'tribe' => 'human', 'hp' => 3,'gender' => 'female','is_leader' => false,'image_name' => 'nayeon.png','char_name'=>'nayeon'],
             ['name' => 'โรเจอร์ คิง ออฟ ไพเรท', 'tribe' => 'human', 'hp' => 4,'gender' => 'male','is_leader' => false,'image_name' => 'roger.png','char_name'=>'roger'],
+            ['name' => 'อสรพิษ นายอนเน่ห์', 'tribe' => 'human', 'hp' => 3,'gender' => 'female','is_leader' => false,'image_name' => 'nayeon.png','char_name'=>'nayeon'],
             ['name' => 'ฟลอเรน ไนติงเกล', 'tribe' => 'human', 'hp' => 3,'gender' => 'female','is_leader' => false,'image_name' => 'nightingale.png','char_name'=>'nightingale'],
             ['name' => 'มาติน สกอเปี้ยน', 'tribe' => 'human', 'hp' => 4,'gender' => 'male','is_leader' => false,'image_name' => 'martin.png','char_name'=>'martin'],
             ['name' => 'ลีเจี้ยน คอมมานเดอร์', 'tribe' => 'human', 'hp' => 6,'gender' => 'male','is_leader' => true,'image_name' => 'legioncommander.png','char_name'=>'legioncommander'],
