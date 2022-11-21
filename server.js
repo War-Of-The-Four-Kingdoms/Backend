@@ -365,7 +365,7 @@ io.on('connection', async (socket) => {
                     if(me.character.char_name == "legioncommander"){
                         legion = true;
                     }
-                    io.to(playing.sid).emit('attack success',{ legion: legion });
+                    io.to(playing.sid).emit('attack success',{ legion: legion, target: me.position });
                     socket.emit('damaged',{damage: data.damage , legion: l});
                 }
                 legionTemp[data.code] = false;
@@ -501,11 +501,14 @@ io.on('connection', async (socket) => {
                 socket.to(data.code).emit('coma rescued',{position: target.position});
                 io.in(data.code).emit('update remain hp',{ position: target.position, hp: target.remain_hp});
                 if(waitingComa){
+                    waitingComa[data.code] = false;
                     if(aoe_pos[data.code].length > 0){
                         io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0],type: aoeTrickType[data.code]});
                     }else{
                         io.in(data.code).emit('aoe trick done',{type: aoeTrickType[data.code]});
                         aoe_pos[data.code] = [];
+                        waitingComa[data.code] = false;
+                        delete aoeTrickType[data.code];
                     }
                 }
             }
@@ -519,11 +522,14 @@ io.on('connection', async (socket) => {
                 target.dead = true;
                 io.to(target.sid).emit('you died');
                 if(waitingComa){
+                    waitingComa[data.code] = false;
                     if(aoe_pos[data.code].length > 0){
                         io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0],type: aoeTrickType[data.code]});
                     }else{
                         io.in(data.code).emit('aoe trick done',{type: aoeTrickType[data.code]});
                         aoe_pos[data.code] = [];
+                        waitingComa[data.code] = false;
+                        delete aoeTrickType[data.code];
                     }
 
                 }
@@ -567,6 +573,8 @@ io.on('connection', async (socket) => {
             }else{
                 io.in(data.code).emit('aoe trick done',{position: aoe_pos[data.code][0],type: data.type});
                 aoe_pos[data.code] = [];
+                waitingComa[data.code] = false;
+                delete aoeTrickType[data.code];
             }
         }else{
             io.in(data.code).emit('other countered',{position: data.position , success: false});
@@ -589,6 +597,8 @@ io.on('connection', async (socket) => {
                     }else{
                         io.in(data.code).emit('aoe trick done',{type: data.type});
                         aoe_pos[data.code] = [];
+                        waitingComa[data.code] = false;
+                        delete aoeTrickType[data.code];
                     }
                 }
             }
