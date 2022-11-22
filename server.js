@@ -32,6 +32,7 @@ const apiURL = process.env.API_URL;
 const MAX_WAITING = 35000;
 
 function clear_code(code){
+    io.in(code).socketsLeave(code);
     delete current_turn_position[code];
     delete  next_turn_position[code];
     delete  timeout[code];
@@ -108,7 +109,7 @@ async function playerDead(code,player){
     io.in(code).emit('player died',{position: player.position, role: player.role});
     if(rooms.some(r => r.code == code)){
         let room = rooms.find(r => r.code == code);
-        if(room.players.filter(p =>p.dead == false && p.leaved == false).length == 1){
+        if(room.players.filter(p =>p.leaved == false).length == 1){
             let winners = room.players.filter(p =>p.dead == false && p.leaved == false);
             winners.forEach(win => {
                 io.to(win.sid).emit('you win');
@@ -118,8 +119,8 @@ async function playerDead(code,player){
             clear_code(code);
             rooms = rooms.filter(r => r.code != code);
         }else if(player.role == 'king'){
-            let winners = room.players.filter(p =>p.dead == false && p.leaved == false).filter(p => p.role == 'villager');
-            let losers = room.players.filter(p =>p.dead == false && p.leaved == false).filter(p => p.role != 'villager');
+            let winners = room.players.filter(p => p.leaved == false).filter(p => p.role == 'villager');
+            let losers = room.players.filter(p => p.leaved == false).filter(p => p.role != 'villager');
             winners.forEach(win => {
                 io.to(win.sid).emit('you win');
             });
@@ -130,10 +131,27 @@ async function playerDead(code,player){
             io.in(code).socketsLeave(code);
             clear_code(code);
             rooms = rooms.filter(r => r.code != code);
-        }else if(room.players.filter(p =>p.dead == false && p.leaved == false).filter(p => p.role == 'villager' || p.role == 'noble').length == 0){
-            let winners = room.players.filter(p =>p.dead == false && p.leaved == false).filter(p => p.role == 'king' || p.role == 'knight');
+        }else if(room.players.filter(p =>p.dead == false).filter(p => p.role == 'villager' || p.role == 'noble').length == 0){
+            let winners = room.players.filter(p =>p.leaved == false).filter(p => p.role == 'king' || p.role == 'knight');
+            let losers = room.players.filter(p => p.leaved == false).filter(p => p.role == 'villager' || p.role == 'noble');
             winners.forEach(win => {
                 io.to(win.sid).emit('you win');
+            });
+            losers.forEach(los => {
+                io.to(los.sid).emit('you lose');
+            });
+            let res = await axios.put(apiURL+'roomEnd',{ roomcode: code});
+            io.in(code).socketsLeave(code);
+            clear_code(code);
+            rooms = rooms.filter(r => r.code != code);
+        }else if(room.players.filter(p =>p.dead == false).length == 1){
+            let winners = room.players.filter(p =>p.dead == false);
+            let losers = room.players.filter(p => p.dead == true);
+            winners.forEach(win => {
+                io.to(win.sid).emit('you win');
+            });
+            losers.forEach(los => {
+                io.to(los.sid).emit('you lose');
             });
             let res = await axios.put(apiURL+'roomEnd',{ roomcode: code});
             io.in(code).socketsLeave(code);
@@ -141,7 +159,8 @@ async function playerDead(code,player){
             rooms = rooms.filter(r => r.code != code);
         }else{
             pos[room.code] = pos[room.code].filter(p => p != player.position);
-            if(player.in_hand != undefined){
+            if(player.in_hand){
+                console.log('have in_hand');
                 let ihc = [];
                 player.in_hand.forEach(card => {
                     ihc.push(card.id);
@@ -296,6 +315,9 @@ io.on('connection', async (socket) => {
         }
     });
 
+    await socket.on('clear table',(data) => {
+        io.in(data.code).emit('clear table cards',{position: data.position});
+    });
     await socket.on('special effect end',(data) => {
         if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == current_turn_position[data.code])){
             let playing = rooms.find(r => r.code == data.code).players.find(p => p.position == current_turn_position[data.code]);
@@ -362,7 +384,7 @@ io.on('connection', async (socket) => {
                 if(data.canDef){
                     io.to(playing.sid).emit('attack fail');
                 }else{
-                    if(me.character.char_name == "legioncommander"){
+                    if(me.character.char_name == "legioncommander" && me.role == 'king'){
                         legion = true;
                     }
                     io.to(playing.sid).emit('attack success',{ legion: legion, target: me.position });
@@ -499,7 +521,7 @@ io.on('connection', async (socket) => {
                 target.remain_hp += 1;
                 socket.to(data.code).emit('coma rescued',{position: target.position});
                 io.in(data.code).emit('update remain hp',{ position: target.position, hp: target.remain_hp});
-                if(waitingComa){
+                if(waitingComa[data.code] != undefined && waitingComa[data.code]){
                     waitingComa[data.code] = false;
                     if(aoe_pos[data.code].length > 0){
                         io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0],type: aoeTrickType[data.code]});
@@ -520,7 +542,9 @@ io.on('connection', async (socket) => {
             if(target.coma == 0){
                 target.dead = true;
                 io.to(target.sid).emit('you died');
-                if(waitingComa){
+                console.log(waitingComa[data.code]);
+                if(waitingComa[data.code] != undefined && waitingComa[data.code]){
+                    console.log('do');
                     waitingComa[data.code] = false;
                     if(aoe_pos[data.code].length > 0){
                         io.in(data.code).emit('aoe trick next',{position: aoe_pos[data.code][0],type: aoeTrickType[data.code]});
@@ -530,7 +554,6 @@ io.on('connection', async (socket) => {
                         waitingComa[data.code] = false;
                         delete aoeTrickType[data.code];
                     }
-
                 }
                 playerDead(data.code,target);
             }
@@ -577,7 +600,8 @@ io.on('connection', async (socket) => {
         }else{
             io.in(data.code).emit('other countered',{position: data.position , success: false});
             if(rooms.some(r => r.code == data.code) && rooms.find(r => r.code == data.code).players.some(p => p.position == data.position)){
-                let me = rooms.find(r => r.code == data.code).players.find(p => p.position == data.position);
+                let room = rooms.find(r => r.code == data.code);
+                let me = room.players.find(p => p.position == data.position);
                 me.remain_hp -= 1;
                 io.in(data.code).emit('update remainhp aoe',{ position: me.position, hp: me.remain_hp});
                 aoe_pos[data.code] = aoe_pos[data.code].filter(ap => ap != data.position);
@@ -760,6 +784,7 @@ io.on('connection', async (socket) => {
         socket.to(data.code).emit('sctc',{username: me.username, message: data.message, position: me.position});
     });
     await socket.on('disconnect', () => {
+
         if(users.find(u => u.id == socket.id)){
             if(users.find(u => u.id == socket.id).room != ''){
                 if(rooms.some(r => r.code == users.find(u => u.id == socket.id).room)){
@@ -812,6 +837,7 @@ io.on('connection', async (socket) => {
     //    pos>0?pos--:pos=0;
     });
     await socket.on('start', async (data) => {
+
         let user = users.find(u => u.uuid == data.uuid);
         if(user != null){
             if(user.id == socket.id){
@@ -878,6 +904,7 @@ io.on('connection', async (socket) => {
     await socket.on('create lobby', (data) => {
         if(users.some(u => u.id == socket.id)){
             clear_code(data.code);
+            io.in(data.code).socketsLeave(data.code);
             socket.join(data.code);
             let user = users.find(u => u.id == socket.id );
             const room = {
