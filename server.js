@@ -141,11 +141,13 @@ async function playerDead(code,player){
             rooms = rooms.filter(r => r.code != code);
         }else{
             pos[room.code] = pos[room.code].filter(p => p != player.position);
-            let ihc = [];
-            player.in_hand.forEach(card => {
-                ihc.push(card.id);
-            });
-            let res = await axios.put(apiURL+'dropCard',{ roomcode: room.code , cards: ihc});
+            if(player.in_hand != undefined){
+                let ihc = [];
+                player.in_hand.forEach(card => {
+                    ihc.push(card.id);
+                });
+                let res = await axios.put(apiURL+'dropCard',{ roomcode: room.code , cards: ihc});
+            }
             if(next_turn_position[room.code] == player.position){
                 next_turn_position[code] = pos[code][((turn[code]+1) % pos[code].length)];
             }
@@ -560,7 +562,6 @@ io.on('connection', async (socket) => {
         }
     });
     await socket.on('counter aoe trick', async (data) => {
-        console.log(data);
         if(data.canCounter){
             io.in(data.code).emit('other countered',{position: data.position, success: true});
             aoe_pos[data.code] = aoe_pos
@@ -759,7 +760,6 @@ io.on('connection', async (socket) => {
         socket.to(data.code).emit('sctc',{username: me.username, message: data.message, position: me.position});
     });
     await socket.on('disconnect', () => {
-        console.log('dis');
         if(users.find(u => u.id == socket.id)){
             if(users.find(u => u.id == socket.id).room != ''){
                 if(rooms.some(r => r.code == users.find(u => u.id == socket.id).room)){
@@ -812,7 +812,6 @@ io.on('connection', async (socket) => {
     //    pos>0?pos--:pos=0;
     });
     await socket.on('start', async (data) => {
-        console.log('start');
         let user = users.find(u => u.uuid == data.uuid);
         if(user != null){
             if(user.id == socket.id){
