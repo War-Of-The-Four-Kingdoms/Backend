@@ -288,7 +288,7 @@ io.on('connection', async (socket) => {
                     }
                     io.in(data.code).emit('other drop equipment',{position: target.position, type: data.type});
                 }
-                socket.emit('get card from others',{cards: data.card});
+                socket.emit('get card from others',{cards: [data.card]});
                 io.in(data.code).emit('update inhand',{ position: me.position, card_num: me.in_hand.length});
             }
         }
