@@ -27,7 +27,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('login', [AuthenController::class, 'login']);
 Route::post('register', [AuthenController::class, 'register']);
 Route::post('refresh', [AuthenController::class, 'refreshToken']);
-Route::post('gameStart', [GameController::class, 'storeGameData']);
 Route::group(['middleware' => 'auth:api'], function(){
     Route::get('details', [AuthenController::class, 'details']);
     Route::put('name/edit', [AuthenController::class, 'editUsername']);
