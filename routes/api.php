@@ -40,14 +40,14 @@ Route::group(['middleware' => 'auth:api'], function(){
         //     ]);
         return response()->json('DONE');
     });
-    Route::get('revoke/all', function (Request $request) {
-        DB::table('oauth_access_tokens')
-            ->where('user_id', $request->user()->id)
-            ->update([
-                'revoked' => true
-            ]);
-        return response()->json('DONE');
-    });
+    // Route::get('revoke/all', function (Request $request) {
+    //     DB::table('oauth_access_tokens')
+    //         ->where('user_id', $request->user()->id)
+    //         ->update([
+    //             'revoked' => true
+    //         ]);
+    //     return response()->json('DONE');
+    // });
 });
 Route::get('getRole', [GameController::class, 'getRoleList']);
 Route::get('getCharacter', [GameController::class, 'getCharacterList']);
